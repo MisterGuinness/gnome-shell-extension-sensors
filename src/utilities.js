@@ -81,11 +81,10 @@ function parseSensorsOutput(txt,parser) {
     let feature_value = undefined;
     let sensors = new Array();
     //iterate through each lines
-    for(let i = 0; i < sensors_output.length; i++){
+    for(let i = 2; i < sensors_output.length; i++){
         // ignore chipset driver name and 'Adapter:' line for now
-        i += 2;
         // get every feature of the chip
-        while(sensors_output[i]){
+        if(sensors_output[i]){
            // if it is not a continutation of a feature line
            if(sensors_output[i].indexOf(' ') != 0){
               let feature = parser(feature_label, feature_value);
@@ -98,7 +97,6 @@ function parseSensorsOutput(txt,parser) {
            else{
               feature_value += sensors_output[i];
            }
-           i++;
         }
     }
     let feature = parser(feature_label, feature_value);
