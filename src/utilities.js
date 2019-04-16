@@ -5,6 +5,7 @@ const Lang = imports.lang;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
+const ByteArray = imports.byteArray;
 
 const UDisksDriveProxy = Gio.DBusProxy.makeProxyWrapper(
 '<node>\
@@ -229,7 +230,7 @@ var Future = new Lang.Class({
         this._dataStdout.fill_async(-1, GLib.PRIORITY_DEFAULT, null, Lang.bind(this, function(stream, result) {
             if (stream.fill_finish(result) == 0){
                 try{
-                    this._callback(stream.peek_buffer().toString());
+                    this._callback(ByteArray.toString(stream.peek_buffer()));
                 }catch(e){
                     global.log(e.toString());
                 }

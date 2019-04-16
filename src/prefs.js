@@ -3,6 +3,7 @@ const GObject = imports.gi.GObject;
 const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
 const Lang = imports.lang;
+const ByteArray = imports.byteArray;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
@@ -160,10 +161,10 @@ const SensorsPrefsWidget = new GObject.Class({
     _getSensorsLabels: function() {
         let sensors_cmd = Utilities.detectSensors();
         if(sensors_cmd) {
-            let sensors_output = GLib.spawn_command_line_sync(sensors_cmd.join(' '));
-            if(sensors_output[0])
+            let [result, sensors_output] = GLib.spawn_command_line_sync(sensors_cmd.join(' '));
+            if(result)
             {
-                let output = sensors_output[1].toString();
+                let output = ByteArray.toString(sensors_output);
                 let tempInfo = Utilities.parseSensorsOutput(output,Utilities.parseSensorsTemperatureLine);
                 tempInfo = tempInfo.filter(Utilities.filterTemperature);
                 this._appendMultipleItems(tempInfo);
@@ -184,9 +185,9 @@ const SensorsPrefsWidget = new GObject.Class({
     _getHddTempLabels: function() {
         let hddtemp_cmd = Utilities.detectHDDTemp();
         if(hddtemp_cmd){
-            let hddtemp_output = GLib.spawn_command_line_sync(hddtemp_cmd.join(' '))
-            if(hddtemp_output[0]){
-                let hddTempInfo = Utilities.parseHddTempOutput(hddtemp_output[1].toString(),
+            let [result, hddtemp_output] = GLib.spawn_command_line_sync(hddtemp_cmd.join(' '))
+            if(result){
+                let hddTempInfo = Utilities.parseHddTempOutput(ByteArray.toString(hddtemp_output),
                                         !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|');
                 this._appendMultipleItems(hddTempInfo);
             }
