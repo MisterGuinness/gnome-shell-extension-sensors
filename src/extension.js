@@ -33,7 +33,7 @@ const SensorsItem = new Lang.Class({
         let sensorIcon = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-'+type+'-symbolic.svg');
         this.add(new St.Icon({gicon: sensorIcon, style_class: 'popup-menu-icon'}));
         this.add(new St.Label({text: label}));
-        this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END});
+        this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
     },
 
     getPanelString: function() {
