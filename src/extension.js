@@ -147,7 +147,7 @@ const SensorsMenuButton = new Lang.Class({
             let sensorsList = new Array();
             let sum = 0; //sum
             let max = 0; //max temp
-            for each (let temp in tempInfo){
+            for (const temp of tempInfo){
                 sum += temp['temp'];
                 if (temp['temp'] > max)
                     max = temp['temp'];
@@ -165,19 +165,19 @@ const SensorsMenuButton = new Lang.Class({
                     sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
 
-            for each (let fan in fanInfo){
+            for (const fan of fanInfo){
                 sensorsList.push(new SensorsItem('fan', fan['label'], _("%drpm").format(fan['rpm'])));
             }
             if (fanInfo.length > 0 && voltageInfo.length > 0){
                 sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
-            for each (let voltage in voltageInfo){
+            for (const voltage of voltageInfo){
                 sensorsList.push(new SensorsItem('voltage', voltage['label'], _("%s%.2fV").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'])));
             }
 
             this.statusLabel.set_text(_("N/A")); // Just in case
 
-            for each (let item in sensorsList) {
+            for (const item of sensorsList) {
                 if(item instanceof SensorsItem) {
                     if (settings.get_string('main-sensor') == item.getLabel()) {
 

@@ -175,7 +175,7 @@ function parseHddTempOutput(txt, sep) {
     hddtemp_output = hddtemp_output.filter(function(e){ return e; });
 
     let sensors = new Array();
-    for each(let line in hddtemp_output)
+    for (const line of hddtemp_output)
     {
         let sensor = new Array();
         let fields = line.split(sep).filter(function(e){ return e; });
@@ -200,7 +200,7 @@ function filterVoltage(voltageInfo) {
     return true;
 }
 
-const Future = new Lang.Class({
+var Future = new Lang.Class({
     Name: 'Future',
 
 	_init: function(argv, callback) {
@@ -266,7 +266,7 @@ function debug(str){
 }
 
 // routines for handling of udisks2
-const UDisks = {
+var UDisks = {
     // creates a list of sensor objects from the list of proxies given
     create_list_from_proxies: function(proxies) {
         return proxies.filter(function(proxy) {
