@@ -12,9 +12,11 @@ const Utilities = Me.imports.utilities;
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 const Clutter = imports.gi.Clutter;
+const Gio = imports.gi.Gio;
 
 let settings;
 let metadata = Me.metadata;
+let extensionPath;
 
 const SensorsItem = new Lang.Class({
     Name: 'SensorsItem',
@@ -28,9 +30,10 @@ const SensorsItem = new Lang.Class({
         this._label = label;
         this._value = value;
 
-        this.actor.add(new St.Icon({ style_class: 'system-status-icon', icon_name: 'sensors-'+type+'-symbolic', icon_size: 16}));
-        this.actor.add(new St.Label({text: label}));
-        this.actor.add(new St.Label({text: value}), {align: St.Align.END});
+        let sensorIcon = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-'+type+'-symbolic.svg');
+        this.add(new St.Icon({gicon: sensorIcon, style_class: 'popup-menu-icon'}));
+        this.add(new St.Label({text: label}));
+        this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END});
     },
 
     getPanelString: function() {
@@ -249,6 +252,7 @@ function init(extensionMeta) {
     Convenience.initTranslations();
     Convenience.initIcons();
     settings = Convenience.getSettings();
+    extensionPath = extensionMeta.path;
 }
 
 function enable() {
