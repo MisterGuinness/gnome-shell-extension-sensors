@@ -87,7 +87,7 @@ function parseSensorsOutput(txt,parser) {
         // get every feature of the chip
         if(sensors_output[i]){
            // if it is not a continutation of a feature line
-           if(sensors_output[i].indexOf(' ') != 0){
+           if(sensors_output[i].indexOf('  ') != 0){
               let feature = parser(feature_label, feature_value);
               if (feature){
                   sensors.push(feature);
