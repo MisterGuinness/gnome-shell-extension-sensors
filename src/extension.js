@@ -63,7 +63,7 @@ const SensorsMenuButton = new Lang.Class({
         this.statusLabel = new St.Label({ text: '\u2026', y_expand: true, y_align: Clutter.ActorAlign.CENTER });
 
         this.menu.removeAll();
-        this.actor.add_actor(this.statusLabel);
+        this.add_actor(this.statusLabel);
 
         this.sensorsArgv = Utilities.detectSensors();
 
