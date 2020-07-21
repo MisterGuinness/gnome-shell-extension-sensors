@@ -120,7 +120,7 @@ const SensorsPrefsWidget = new GObject.Class({
         // ComboBox to select which sensor to show in panel
         this._sensorSelector = new Gtk.ComboBox({ model: this._model });
         this._sensorSelector.set_active_iter(this._getActiveSensorIter());
-        this._sensorSelector.set_row_separator_func(Lang.bind(this, this._comboBoxSeparator), null, null);
+        this._sensorSelector.set_row_separator_func(Lang.bind(this, this._comboBoxSeparator));
 
         let renderer = new Gtk.CellRendererText();
         this._sensorSelector.pack_start(renderer, true);
@@ -148,7 +148,7 @@ const SensorsPrefsWidget = new GObject.Class({
     },
 
     _appendMultipleItems: function(sensorInfo) {
-        for each (let sensor in sensorInfo) {
+        for (const sensor of sensorInfo) {
             this._model.set(this._model.append(), [modelColumn.label], [sensor['label']]);
         }
     },
@@ -202,6 +202,8 @@ const SensorsPrefsWidget = new GObject.Class({
     },
 
     _getActiveSensorIter: function() {
+        var success;
+        var iter;
         /* Get the first iter in the list */
         [success, iter] = this._model.get_iter_first();
         let sensorLabel = this._model.get_value(iter, 0);
