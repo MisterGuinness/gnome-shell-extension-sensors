@@ -42,22 +42,26 @@ function detectHDDTemp() {
     let pid = undefined;
 
     if(systemctl) {
-        let activeState = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p ActiveState")[1].toString().trim();
-        if(activeState == "ActiveState=active") {
-            let output = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p MainPID")[1].toString().trim();
-
-            if(output.length && output.split("=").length == 2) {
-                pid = Number(output.split("=")[1].trim());
+        let [result, activeState] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p ActiveState");
+        if(result && ByteArray.toString(activeState).trim() == "ActiveState=active") {
+            let [result, output] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p MainPID");
+            if (result) {
+                output=ByteArray.toString(output).trim();
+                if(output.length && output.split("=").length == 2) {
+                    pid = Number(output.split("=")[1].trim());
+                }
             }
         }
     }
 
     // systemd isn't used on this system, try sysvinit instead
     if(!pid && pidof) {
-        let output = GLib.spawn_command_line_sync("pidof hddtemp")[1].toString().trim();
-
-        if(output.length) {
-            pid = Number(output.trim());
+        let [result, output] = GLib.spawn_command_line_sync("pidof hddtemp");
+        if (result) {
+            output=ByteArray.toString(output).trim();
+            if(output.length) {
+                pid = Number(output.trim());
+            }
         }
     }
 
