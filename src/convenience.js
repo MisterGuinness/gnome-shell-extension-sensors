@@ -31,20 +31,6 @@ function initTranslations(domain) {
 }
 
 /**
- * initIcons:
- *
- * Initialize Gtk to load icons from extensionsdir/icons.
- */
-function initIcons() {
-    let extension = ExtensionUtils.getCurrentExtension();
-
-    let theme = Gtk.IconTheme.get_default();
-    let iconDir = extension.dir.get_child('icons');
-    if(iconDir.query_exists(null))
-        theme.append_search_path(iconDir.get_path());
-}
-
-/**
  * getSettings:
  * @schema: (optional): the GSettings schema id
  *

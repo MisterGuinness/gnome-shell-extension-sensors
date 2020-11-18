@@ -250,7 +250,6 @@ let sensorsMenu;
 
 function init(extensionMeta) {
     Convenience.initTranslations();
-    Convenience.initIcons();
     settings = Convenience.getSettings();
     extensionPath = extensionMeta.path;
 }
