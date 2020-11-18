@@ -201,12 +201,7 @@ const SensorsMenuButton = new Lang.Class({
             item.actor.add(new St.Label({ text: '' }));
             item.actor.add(new St.Label({ text: _("Sensors Settings") }));
             item.connect('activate', Lang.bind(this, function () {
-                let appSys = Shell.AppSystem.get_default();
-                let app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
-                let info = app.get_app_info();
-                let timestamp = global.display.get_current_time_roundtrip();
-                info.launch_uris(['extension:///' + metadata.uuid],
-                                 global.create_app_launch_context(timestamp, -1));
+                imports.misc.extensionUtils.openPrefs();
             }));
             section.addMenuItem(item);
         }else{
