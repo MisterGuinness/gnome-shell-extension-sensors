@@ -12,7 +12,7 @@ to read temperature for different CPU cores and adapters, voltage data and fan s
 Optionally, this extension uses the [UDisks2] dbus interface or [hddtemp] as fallback to
 read hard drive temperature data.
 
-![Screenshot][screenshot]
+![screenshot]
 
 Installation
 =============
@@ -152,5 +152,5 @@ Authors : [authors]
 [hddtemp]: https://savannah.nongnu.org/projects/hddtemp/
 [GNOME extensions]: https://extensions.gnome.org/extension/82/cpu-temperature-indicator/
 [authors]: https://github.com/xtranophilist/gnome-shell-extension-sensors/graphs/contributors
-[screenshot]: https://raw.github.com/wiki/xtranophilist/gnome-shell-extension-sensors/gnome-shell-extension-sensors.png
+[screenshot]: Fedora33.png
 [RH#983409]: https://bugzilla.redhat.com/show_bug.cgi?id=983409
