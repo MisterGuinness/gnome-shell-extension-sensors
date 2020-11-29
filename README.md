@@ -1,5 +1,4 @@
-This extensions isn't currently maintained. Please use the this fork: [https://extensions.gnome.org/extension/841/freon/](https://extensions.gnome.org/extension/841/freon/) ([https://github.com/UshakovVasilii/gnome-shell-extension-freon](https://github.com/UshakovVasilii/gnome-shell-extension-freon))
-
+This extension is being updated against my Fedora distribution, typically for each odd numbered release, for my own use. Of course you are welcome to **manually** install it using the **Manual Installation** instructions below.
 
 gnome-shell-extension-sensors
 =============================
@@ -18,7 +17,10 @@ read hard drive temperature data.
 Installation
 =============
 
-This is the **recommended method** for installation, as it doesn't require the build
+Installation by GNOME extensions
+-------------------------------
+
+This is the **very old method** for installation, as it doesn't require the build
 dependencies for installation.
 You can install this extension by visiting the [GNOME extensions]
 page for this extension.
@@ -36,6 +38,18 @@ Manual installation
 -------------------
 
 To install this extension you need to clone the source and build the extension.
+
+For gnome-shell 3.10 or newer please run the following commands:
+
+    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
+    cd ~/gnome-shell-extension-sensors
+
+For gnome-shell 3.8 or older please run the following commands:
+
+    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
+    cd ~/gnome-shell-extension-sensors
+    git checkout gnome-3.8
+
 The build dependenciesare:
 
 * *gettext*,
@@ -49,17 +63,35 @@ The build dependenciesare:
 * *automake*,
 * *intltool*.
 
-To build the extension for gnome-shell 3.10 or newer please run the following commands:
+From stock Fedora, the following installs are necessary to cover the build dependencies:
 
-    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
-    cd ~/gnome-shell-extension-sensors
-    ./autogen.sh
+    sudo dnf install gnome-common
 
-To build the extension for gnome-shell 3.8 or older please run the following commands:
+Installed:
+  autoconf-2.69-34.fc33.noarch              autoconf-archive-2019.01.06-6.fc33.noarch  automake-1.16.2-2.fc33.noarch    gnome-common-3.18.0-10.fc33.noarch      itstool-2.0.6-4.fc33.noarch         
+  libtool-2.4.6-36.fc33.x86_64              m4-1.4.18-15.fc33.x86_64                   mallard-rng-1.1.0-4.fc33.noarch  perl-Thread-Queue-3.14-457.fc33.noarch  perl-threads-1:2.25-457.fc33.x86_64 
+  perl-threads-shared-1.61-457.fc33.x86_64  yelp-tools-3.38.0-1.fc33.noarch
 
-    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
-    cd ~/gnome-shell-extension-sensors
-    git checkout gnome-3.8
+    sudo dnf install intltool
+
+Installed:
+  ed-1.14.2-9.fc33.x86_64             gettext-common-devel-0.21-3.fc33.noarch  gettext-devel-0.21-3.fc33.x86_64  info-6.7-8.fc33.x86_64  intltool-0.51.0-17.fc33.noarch  patch-2.7.6-13.fc33.x86_64 
+  perl-XML-Parser-2.46-6.fc33.x86_64
+
+    sudo dnf install glib2-devel
+
+Installed:
+  glib2-devel-2.66.2-1.fc33.x86_64      libblkid-devel-2.36-3.fc33.x86_64      libffi-devel-3.1-26.fc33.x86_64      libmount-devel-2.36-3.fc33.x86_64      libselinux-devel-3.1-2.fc33.x86_64     
+  libsepol-devel-3.1-3.fc33.x86_64      pcre-cpp-8.44-1.fc33.1.x86_64          pcre-devel-8.44-1.fc33.1.x86_64      pcre-utf16-8.44-1.fc33.1.x86_64        pcre-utf32-8.44-1.fc33.1.x86_64        
+  pcre2-devel-10.35-7.fc33.x86_64       zlib-devel-1.2.11-22.fc33.x86_64
+
+    sudo dnf install make
+
+Installed:
+  make-1:4.3-2.fc33.x86_64
+
+Then run autogen:
+
     ./autogen.sh
 
 You can install this extension for your user by executing:
@@ -75,15 +107,25 @@ After installation you need to restart the GNOME shell:
 * `ALT`+`F2` to open the command prompt
 * Enter `r` to restart the GNOME shell
 
-Then enable the extension:
-Open `gnome-tweak-tool` -> `Shell Extensions` -> `Sensors` -> On
+For Wayland users, simply logout and back in.
+
+Install lm-sensors (refer below), then enable the extension:
+
+Install Gnome Tweaks (previously Gnome Tweak Tool)
+
+    sudo dnf install gnome-tweak-tool
+
+Open `Tweaks` -> `Extensions` -> `Sensors` -> On
 
 
-Installing dependencies
+Installing lm-sensors
 -------------
-Installing lm-sensors for Fedora, CentOS and other distros with yum:
+This extensions uses the output of `sensors`(1) command to obtain the
+temperature data and sensor labeling. 
 
-`yum install -y lm_sensors`
+Installing lm-sensors for Fedora, CentOS and other distros with dnf:
+
+`sudo dnf install lm_sensors`
 
 Ubuntu, Debian and other distros with apt-get:
 
@@ -91,9 +133,9 @@ Ubuntu, Debian and other distros with apt-get:
 
 Then run `sensors-detect` as root as one time detection process.
 
-Installing `hdd-temp`:
+Installing `hdd-temp` (optional, only required if lm-sensors doesn't include drive temps):
 
-`yum -y install hddtemp`
+`sudo dnf install hddtemp`
 
 
 Configuration
