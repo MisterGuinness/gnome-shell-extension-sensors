@@ -41,12 +41,12 @@ To install this extension you need to clone the source and build the extension.
 
 For gnome-shell 3.10 or newer please run the following commands:
 
-    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
+    cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
     cd ~/gnome-shell-extension-sensors
 
 For gnome-shell 3.8 or older please run the following commands:
 
-    cd ~ && git clone https://github.com/xtranophilist/gnome-shell-extension-sensors.git
+    cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
     cd ~/gnome-shell-extension-sensors
     git checkout gnome-3.8
 
