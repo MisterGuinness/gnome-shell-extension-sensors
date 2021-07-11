@@ -56,8 +56,8 @@ const SensorsPrefsWidget = new GObject.Class({
         }
         else {
             //Shell 40 or higher
-            centigradeRadio = new Gtk.ToggleButton({ label: _("Centigrade") });
-            fahrenheitRadio = new Gtk.ToggleButton({ group: centigradeRadio, label: _("Fahrenheit") });
+            centigradeRadio = new Gtk.CheckButton({ label: _("Centigrade") });
+            fahrenheitRadio = new Gtk.CheckButton({ group: centigradeRadio, label: _("Fahrenheit") });
         }
 
         fahrenheitRadio.connect('toggled', Lang.bind(this, this._onUnitChanged, 'Fahrenheit'));
