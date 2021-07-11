@@ -11,6 +11,10 @@ const Utilities = Me.imports.utilities;
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 
+const Config = imports.misc.config;
+const [major] = Config.PACKAGE_VERSION.split('.');
+const shellVersion = Number.parseInt(major);
+
 const modelColumn = {
     label: 0,
     separator: 1
@@ -40,8 +44,21 @@ const SensorsPrefsWidget = new GObject.Class({
         this.attach(update_time, 1, 0, 1, 1);
 
         this.attach(new Gtk.Label({ label: _("Temperature unit") }), 0, 2, 1, 1);
-        let centigradeRadio = new Gtk.RadioButton({ group: null, label: _("Centigrade"), valign: Gtk.Align.START });
-        let fahrenheitRadio = new Gtk.RadioButton({ group: centigradeRadio, label: _("Fahrenheit"), valign: Gtk.Align.START });
+
+        let centigradeRadio = null;
+        let fahrenheitRadio = null;
+
+        if (shellVersion < 40) {
+            //Shell 3.38 or lower
+            centigradeRadio = new Gtk.RadioButton({ group: null, label: _("Centigrade"), valign: Gtk.Align.START });
+            fahrenheitRadio = new Gtk.RadioButton({ group: centigradeRadio, label: _("Fahrenheit"), valign: Gtk.Align.START });
+        }
+        else {
+            //Shell 40 or higher
+            centigradeRadio = new Gtk.ToggleButton({ label: _("Centigrade") });
+            fahrenheitRadio = new Gtk.ToggleButton({ group: centigradeRadio, label: _("Fahrenheit") });
+        }
+
         fahrenheitRadio.connect('toggled', Lang.bind(this, this._onUnitChanged, 'Fahrenheit'));
         centigradeRadio.connect('toggled', Lang.bind(this, this._onUnitChanged, 'Centigrade'));
         if (this._settings.get_string('unit')=='Centigrade')
@@ -243,6 +260,9 @@ const SensorsPrefsWidget = new GObject.Class({
 
 function buildPrefsWidget() {
     let widget = new SensorsPrefsWidget();
-    widget.show_all();
+    if (shellVersion < 40) {
+        //Shell 3.38 or lower
+        widget.show_all();
+    }
     return widget;
 }
