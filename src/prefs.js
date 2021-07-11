@@ -31,19 +31,20 @@ const SensorsPrefsWidget = new GObject.Class({
 
     _init: function(params) {
         this.parent(params);
-        this.margin = this.row_spacing = this.column_spacing = 20;
+        this.margin_start = this.margin_end = this.margin_bottom = this.row_spacing = this.column_spacing = 20;
 
         this._settings = Convenience.getSettings();
 
-        this.attach(new Gtk.Label({ label: _("Poll sensors every (in seconds)") }), 0, 0, 1, 1);
+        this.attach(new Gtk.Label({ label: _("Poll sensors every (in seconds)"), halign: Gtk.Align.END }), 0, 0, 1, 1);
         let update_time = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 5, 100, 5);
         update_time.set_value(this._settings.get_int('update-time'));
         update_time.set_digits(0);
         update_time.set_hexpand(true);
         update_time.connect('value-changed', Lang.bind(this, this._onUpdateTimeChanged));
+        update_time.set_draw_value(true);
         this.attach(update_time, 1, 0, 1, 1);
 
-        this.attach(new Gtk.Label({ label: _("Temperature unit") }), 0, 2, 1, 1);
+        this.attach(new Gtk.Label({ label: _("Temperature unit"), halign: Gtk.Align.END }), 0, 2, 1, 1);
 
         let centigradeRadio = null;
         let fahrenheitRadio = null;
@@ -97,8 +98,8 @@ const SensorsPrefsWidget = new GObject.Class({
 
         for (let boolSetting in boolSettings){
             let setting = boolSettings[boolSetting];
-            let settingLabel = new Gtk.Label({ label: setting.label });
-            let settingSwitch = new Gtk.Switch({active: this._settings.get_boolean(setting.name)});
+            let settingLabel = new Gtk.Label({ label: setting.label, halign: Gtk.Align.END });
+            let settingSwitch = new Gtk.Switch({ active: this._settings.get_boolean(setting.name), halign: Gtk.Align.START });
             let settings = this._settings;
             settingSwitch.connect('notify::active', function(button) {
                 settings.set_boolean(setting.name, button.active);
@@ -145,7 +146,7 @@ const SensorsPrefsWidget = new GObject.Class({
         this._sensorSelector.add_attribute(renderer, 'text', modelColumn.label);
         this._sensorSelector.connect('changed', Lang.bind(this, this._onSelectorChanged));
 
-        this.attach(new Gtk.Label({ label: _("Sensor in panel") }), 0, ++counter, 1, 1);
+        this.attach(new Gtk.Label({ label: _("Sensor in panel"), halign: Gtk.Align.END }), 0, ++counter, 1, 1);
         this.attach(this._sensorSelector, 1, counter , 1, 1);
 
         let settings = this._settings;
