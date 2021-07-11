@@ -1,5 +1,7 @@
 This extension is being updated against my Fedora distribution, typically for each odd numbered release, for my own use. Of course you are welcome to **manually** install it using the **Manual Installation** instructions below.
 
+Currently supporting **Fedora 33 and 34**.
+
 gnome-shell-extension-sensors
 =============================
 *gnome-shell-extension-sensors* (previously known as gnome-shell-extension-cpu-temperature)
@@ -111,31 +113,39 @@ For Wayland users, simply logout and back in.
 
 Install lm-sensors (refer below), then enable the extension:
 
-Install Gnome Tweaks (previously Gnome Tweak Tool)
+For Fedora 34 (Gnome-shell 40) and later, install the Gnome Extensions app
+
+    sudo dnf install gnome-extensions-app
+
+Run the app and turn on the 'Sensors' slider. Click the gear icon to open the sensors settings page or use the 'Sensors Setting' item at the bottom of the sensor menu.
+
+For Fedora 33 and earlier, install Gnome Tweaks (previously Gnome Tweak Tool)
 
     sudo dnf install gnome-tweak-tool
 
 Open `Tweaks` -> `Extensions` -> `Sensors` -> On
 
 
-Installing lm-sensors
+Installing lm-sensors and (optionally) hdd-temp
 -------------
 This extensions uses the output of `sensors`(1) command to obtain the
 temperature data and sensor labeling. 
 
 Installing lm-sensors for Fedora, CentOS and other distros with dnf:
 
-`sudo dnf install lm_sensors`
+    sudo dnf install lm_sensors
 
 Ubuntu, Debian and other distros with apt-get:
 
-`apt-get install lm-sensors`
+    apt-get install lm-sensors
 
-Then run `sensors-detect` as root as one time detection process.
+Then run the one time detection process:
 
-Installing `hdd-temp` (optional, only required if lm-sensors doesn't include drive temps):
+    sudo sensors-detect
 
-`sudo dnf install hddtemp`
+Installing `hdd-temp` is optional, and only required if you find lm-sensors doesn't include drive temps:
+
+    sudo dnf install hddtemp
 
 
 Configuration
@@ -154,3 +164,4 @@ Authors : [authors]
 [authors]: https://github.com/xtranophilist/gnome-shell-extension-sensors/graphs/contributors
 [screenshot]: Fedora33.png
 [RH#983409]: https://bugzilla.redhat.com/show_bug.cgi?id=983409
+
