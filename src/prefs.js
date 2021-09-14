@@ -8,8 +8,10 @@ const ByteArray = imports.byteArray;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 const Utilities = Me.imports.utilities;
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const _ = Gettext.gettext;
+
+const Gettext = imports.gettext;
+const Domain = Gettext.domain(Me.metadata['gettext-domain']);
+const _ = Domain.gettext;
 
 const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
@@ -31,6 +33,9 @@ const SensorsPrefsWidget = new GObject.Class({
 
     _init: function(params) {
         this.parent(params);
+
+        const oldLocale = Utilities.overrideLocale();
+
         this.margin_start = this.margin_end = this.margin_bottom = this.row_spacing = this.column_spacing = 20;
 
         this._settings = Convenience.getSettings();
@@ -156,6 +161,8 @@ const SensorsPrefsWidget = new GObject.Class({
             settings.set_boolean('display-label', checkButton.get_active());
         });
         this.attach(checkButton, 2, counter , 1, 1);
+
+        Utilities.restoreLocale(oldLocale);
     },
 
     _comboBoxSeparator: function(model, iter, data) {

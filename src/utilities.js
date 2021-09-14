@@ -3,8 +3,11 @@ const GObject = imports.gi.GObject;
 const Gio = imports.gi.Gio;
 const Lang = imports.lang;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const _ = Gettext.gettext;
+
+const Gettext = imports.gettext;
+const Domain = Gettext.domain(Me.metadata['gettext-domain']);
+const _ = Domain.gettext;
+
 const ByteArray = imports.byteArray;
 
 const UDisksDriveProxy = Gio.DBusProxy.makeProxyWrapper(
@@ -34,7 +37,7 @@ function detectHDDTemp() {
             return [hddtempArgv];
     }
 
-    // doesn't seem to be the case… is it running as a daemon?
+    // doesn't seem to be the case... is it running as a daemon?
 	// Check first for systemd
     let systemctl = GLib.find_program_in_path('systemctl');
     let pidof = GLib.find_program_in_path('pidof');
@@ -116,7 +119,7 @@ function parseSensorsTemperatureLine(label, value) {
     let sensor = undefined;
     if(label != undefined && value != undefined) {
         let curValue = value.trim().split('  ')[0];
-        // does the current value look like a temperature unit (°C)?
+        // does the current value look like a temperature unit (ends with C)?
         if(curValue.indexOf("C", curValue.length - "C".length) !== -1){
             sensor = new Array();
             let r;
@@ -321,5 +324,37 @@ var UDisks = {
                 debug("Could not find UDisks objects: "+e);
             }
         });
+    }
+};
+
+function overrideLocale() {
+    const path = GLib.build_filenamev([GLib.get_user_config_dir(), "temperature@xtranophilist", "override_locale"]);
+    const file = Gio.File.new_for_path(path);
+
+    let newLocale = null;
+    try {
+        const [success, contents] = file.load_contents(null);
+        newLocale = ByteArray.toString(contents).substr(0,10);
+    } catch (e) {
+        if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND)) {
+            // ignore
+        } else {
+            debug('Gio.IOErrorEnum=' + e.code);
+            throw(e);
+        }
+    }
+
+    // set the current locale only when there is a new locale to set
+    let currentLocale = null;
+    if (newLocale != null) {
+        currentLocale = Gettext.setlocale(Gettext.LocaleCategory.MESSAGES, null);
+        Gettext.setlocale(Gettext.LocaleCategory.MESSAGES,newLocale);
+    }
+    return currentLocale;
+};
+
+function restoreLocale(locale) {
+    if (locale != null) {
+        Gettext.setlocale(Gettext.LocaleCategory.MESSAGES, locale);
     }
 };
