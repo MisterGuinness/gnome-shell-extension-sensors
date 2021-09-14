@@ -9,10 +9,15 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 const Shell = imports.gi.Shell;
 const Utilities = Me.imports.utilities;
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const _ = Gettext.gettext;
+
+const Gettext = imports.gettext;
+const Domain = Gettext.domain(Me.metadata['gettext-domain']);
+const _ = Domain.gettext;
+
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const ByteArray = imports.byteArray
 
 let settings;
 let metadata = Me.metadata;
@@ -125,6 +130,8 @@ const SensorsMenuButton = new Lang.Class({
         let fanInfo = Array();
         let voltageInfo = Array();
 
+        const oldLocale = Utilities.overrideLocale();
+
         tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
         tempInfo = tempInfo.filter(Utilities.filterTemperature);
         if (display_fan_rpm){
@@ -204,6 +211,14 @@ const SensorsMenuButton = new Lang.Class({
                 imports.misc.extensionUtils.openPrefs();
             }));
             section.addMenuItem(item);
+
+            // time of update
+            let time = new PopupMenu.PopupBaseMenuItem();
+            time.actor.add(new St.Label({ text: '' }));
+            /* TRANSLATORS: the placeholder is locale specific time that sensor
+               values were last displayed in the menu */
+            time.actor.add(new St.Label({ text: _("Last Updated %s").format( new Date().toLocaleTimeString() ) }));
+            section.addMenuItem(time);
         }else{
             this.statusLabel.set_text(_("Error"));
 
@@ -219,6 +234,8 @@ const SensorsMenuButton = new Lang.Class({
         }
 
         this.menu.addMenuItem(section);
+
+        Utilities.restoreLocale(oldLocale);
     },
 
     _toFahrenheit: function(c){
