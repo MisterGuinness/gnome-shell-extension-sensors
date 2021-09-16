@@ -5,8 +5,8 @@ const Gtk = imports.gi.Gtk;
 const Lang = imports.lang;
 const ByteArray = imports.byteArray;
 
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
 const Utilities = Me.imports.utilities;
 
 const Gettext = imports.gettext;
@@ -23,7 +23,7 @@ const modelColumn = {
 }
 
 function init() {
-    Convenience.initTranslations();
+    ExtensionUtils.initTranslations();
 }
 
 const SensorsPrefsWidget = new GObject.Class({
@@ -38,7 +38,7 @@ const SensorsPrefsWidget = new GObject.Class({
 
         this.margin_start = this.margin_end = this.margin_bottom = this.row_spacing = this.column_spacing = 20;
 
-        this._settings = Convenience.getSettings();
+        this._settings = ExtensionUtils.getSettings();
 
         this.attach(new Gtk.Label({ label: _("Poll sensors every (in seconds)"), halign: Gtk.Align.END }), 0, 0, 1, 1);
         let update_time = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 5, 100, 5);

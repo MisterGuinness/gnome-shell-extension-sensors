@@ -5,8 +5,9 @@ const PopupMenu = imports.ui.popupMenu;
 const Main = imports.ui.main;
 const Util = imports.misc.util;
 const Mainloop = imports.mainloop;
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
+
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
 const Shell = imports.gi.Shell;
 const Utilities = Me.imports.utilities;
 
@@ -19,7 +20,6 @@ const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const ByteArray = imports.byteArray
 
-let settings;
 let metadata = Me.metadata;
 let extensionPath;
 
@@ -29,9 +29,7 @@ const SensorsItem = new Lang.Class({
 
     _init: function(type, label, value) {
         this.parent();
-        this.connect('activate', function () {
-            settings.set_string('main-sensor', label);
-        });
+        this._settings = ExtensionUtils.getSettings();
         this._label = label;
         this._value = value;
 
@@ -42,7 +40,7 @@ const SensorsItem = new Lang.Class({
     },
 
     getPanelString: function() {
-        if(settings.get_boolean('display-label'))
+        if(this._settings.get_boolean('display-label'))
             return '%s: %s'.format(this._label, this._value);
         else
             return this._value;
@@ -65,6 +63,7 @@ const SensorsMenuButton = new Lang.Class({
     _init: function(){
         this.parent(null, 'sensorMenu');
 
+        this._settings = ExtensionUtils.getSettings();
         this._sensorsOutput = '';
         this._hddtempOutput = '';
 
@@ -75,7 +74,7 @@ const SensorsMenuButton = new Lang.Class({
 
         this.sensorsArgv = Utilities.detectSensors();
 
-        if (settings.get_boolean('display-hdd-temp')){
+        if (this._settings.get_boolean('display-hdd-temp')){
             this.hddtempArgv = Utilities.detectHDDTemp();
         }
 
@@ -85,13 +84,13 @@ const SensorsMenuButton = new Lang.Class({
             this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
         }));
 
-        this._settingsChanged = settings.connect('changed', Lang.bind(this, this._querySensors));
+        this._settingsChanged = this._settings.connect('changed', Lang.bind(this, this._querySensors));
         this.connect('destroy', Lang.bind(this, this._onDestroy));
 
         // don't postprone the first call by update-time.
         this._querySensors();
 
-        this._eventLoop = Mainloop.timeout_add_seconds(settings.get_int('update-time'), Lang.bind(this, function (){
+        this._eventLoop = Mainloop.timeout_add_seconds(this._settings.get_int('update-time'), Lang.bind(this, function (){
             this._querySensors();
             // readd to update queue
             return true;
@@ -101,7 +100,7 @@ const SensorsMenuButton = new Lang.Class({
     _onDestroy: function(){
         Mainloop.source_remove(this._eventLoop);
         this.menu.removeAll();
-        settings.disconnect(this._settingsChanged);
+        this._settings.disconnect(this._settingsChanged);
     },
 
     _querySensors: function(){
@@ -123,8 +122,8 @@ const SensorsMenuButton = new Lang.Class({
     },
 
     _updateDisplay: function(sensors_output, hddtemp_output){
-        let display_fan_rpm = settings.get_boolean('display-fan-rpm');
-        let display_voltage = settings.get_boolean('display-voltage');
+        let display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
+        let display_voltage = this._settings.get_boolean('display-voltage');
 
         let tempInfo = Array();
         let fanInfo = Array();
@@ -189,12 +188,15 @@ const SensorsMenuButton = new Lang.Class({
 
             for (const item of sensorsList) {
                 if(item instanceof SensorsItem) {
-                    if (settings.get_string('main-sensor') == item.getLabel()) {
+                    if (this._settings.get_string('main-sensor') == item.getLabel()) {
 
                         // Configure as main sensor and set panel string
                         item.setMainSensor();
                         this.statusLabel.set_text(item.getPanelString());
                     }
+                    item.connect('activate', Lang.bind(this, function () {
+                        this._settings.set_string('main-sensor', item.getLabel());
+                    }));
                 }
                 section.addMenuItem(item);
             }
@@ -243,26 +245,25 @@ const SensorsMenuButton = new Lang.Class({
     },
 
     _formatTemp: function(value) {
-        if (settings.get_string('unit')=='Fahrenheit'){
+        if (this._settings.get_string('unit')=='Fahrenheit'){
             value = this._toFahrenheit(value);
         }
         let format = '%.1f';
-        if (!settings.get_boolean('display-decimal-value')){
+        if (!this._settings.get_boolean('display-decimal-value')){
             //ret = Math.round(value);
             format = '%d';
         }
-        if (settings.get_boolean('display-degree-sign')) {
+        if (this._settings.get_boolean('display-degree-sign')) {
             format += '%s';
         }
-        return format.format(value, (settings.get_string('unit')=='Fahrenheit') ? "\u00b0F" : "\u00b0C");
+        return format.format(value, (this._settings.get_string('unit')=='Fahrenheit') ? "\u00b0F" : "\u00b0C");
     }
 });
 
 let sensorsMenu;
 
 function init(extensionMeta) {
-    Convenience.initTranslations();
-    settings = Convenience.getSettings();
+    ExtensionUtils.initTranslations();
     extensionPath = extensionMeta.path;
 }
 
