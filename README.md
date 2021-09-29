@@ -60,19 +60,21 @@ The build dependenciesare:
 * *glib2*,
 * *glib2-devel* or *libglib2.0-dev*,
 * *zip*,
-* *gnome-common*,
 * *autoconf*,
 * *automake*,
 * *intltool*.
 
 From stock Fedora, the following installs are necessary to cover the build dependencies:
 
-    sudo dnf install gnome-common
+    sudo dnf install autoconf
 
 Installed:
-  autoconf-2.69-34.fc33.noarch              autoconf-archive-2019.01.06-6.fc33.noarch  automake-1.16.2-2.fc33.noarch    gnome-common-3.18.0-10.fc33.noarch      itstool-2.0.6-4.fc33.noarch         
-  libtool-2.4.6-36.fc33.x86_64              m4-1.4.18-15.fc33.x86_64                   mallard-rng-1.1.0-4.fc33.noarch  perl-Thread-Queue-3.14-457.fc33.noarch  perl-threads-1:2.25-457.fc33.x86_64 
-  perl-threads-shared-1.61-457.fc33.x86_64  yelp-tools-3.38.0-1.fc33.noarch
+  autoconf-2.69-34.fc33.noarch
+
+    sudo dnf install automake
+
+Installed:
+  automake-1.16.2-2.fc33.noarch
 
     sudo dnf install intltool
 
