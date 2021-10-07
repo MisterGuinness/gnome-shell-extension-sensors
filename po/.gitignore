@@ -3,3 +3,14 @@ POTFILES
 Makefile.in.in
 *.gmo
 *.mo
+# added by autopoint 2021-10-03
+Makevars.template
+Rules-quot
+boldquot.sed
+en@boldquot.header
+en@quot.header
+insert-header.sin
+quot.sed
+remove-potcdate.sin
+# added by automake
+stamp-po

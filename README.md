@@ -62,7 +62,6 @@ The build dependenciesare:
 * *zip*,
 * *autoconf*,
 * *automake*,
-* *intltool*.
 
 From stock Fedora, the following installs are necessary to cover the build dependencies:
 
@@ -75,12 +74,6 @@ Installed:
 
 Installed:
   automake-1.16.2-2.fc33.noarch
-
-    sudo dnf install intltool
-
-Installed:
-  ed-1.14.2-9.fc33.x86_64             gettext-common-devel-0.21-3.fc33.noarch  gettext-devel-0.21-3.fc33.x86_64  info-6.7-8.fc33.x86_64  intltool-0.51.0-17.fc33.noarch  patch-2.7.6-13.fc33.x86_64 
-  perl-XML-Parser-2.46-6.fc33.x86_64
 
     sudo dnf install glib2-devel
 

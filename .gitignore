@@ -12,3 +12,5 @@ config.log
 config.status
 .build/
 ChangeLog
+# Added by autopoint 2021-10-03
+ABOUT-NLS
