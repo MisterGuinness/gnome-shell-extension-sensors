@@ -1,2 +1,8 @@
 install-sh
 missing
+# added by autopoint 2021-10-03
+config.rpath
+# added by autoconf
+compile
+config.guess
+config.sub
