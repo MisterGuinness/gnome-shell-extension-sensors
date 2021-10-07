@@ -1,9 +1,9 @@
-extensionurl = https://github.com/xtranophilist/gnome-shell-extension-sensors
+extensionurl = @PACKAGE_BUGREPORT@
 
 # Change these to modify how installation is performed
 topextensiondir = $(datadir)/gnome-shell/extensions
 
-uuid = temperature@xtranophilist
+uuid = "@uuid@"
 
 extensiondir = $(topextensiondir)/$(uuid)
 
@@ -26,11 +26,8 @@ icon_DATA = \
 	sensors-temperature-symbolic.svg \
 	sensors-voltage-symbolic.svg
 
-gschemas_in = org.gnome.shell.extensions.sensors.gschema.xml.in
+gsettings_SCHEMAS = org.gnome.shell.extensions.sensors.gschema.xml
 
-@INTLTOOL_XML_NOMERGE_RULE@
+@GSETTINGS_RULES@
 
-gsettings_SCHEMAS = $(gschemas_in:.xml.in=.xml) @GSETTINGS_RULES@
-
-EXTRA_DIST += $(gschemas_in)
-CLEANFILES += $(gschemas_in:.xml.in=.valid) $(gsettings_SCHEMAS)
+EXTRA_DIST += $(gsettings_SCHEMAS)
