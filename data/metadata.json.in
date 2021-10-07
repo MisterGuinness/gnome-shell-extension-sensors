@@ -1,6 +1,6 @@
 {
   "description": "Shows CPU temperature, HDD temperature, voltage and fan RPM",
-  "name": "Sensors",
+  "name": "Mr.G Sensors",
   "settings-schema": "org.gnome.shell.extensions.sensors",
   "gettext-domain": "@GETTEXT_PACKAGE@",
   "shell-version": [
