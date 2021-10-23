@@ -1,27 +1,19 @@
-extensionurl = @PACKAGE_BUGREPORT@
-
-# Change these to modify how installation is performed
-topextensiondir = $(datadir)/gnome-shell/extensions
-
-uuid = "@uuid@"
-
-extensiondir = $(topextensiondir)/$(uuid)
-
-nodist_extension_DATA = metadata.json $(EXTRA_EXTENSION)
-
-EXTRA_DIST = metadata.json.in
+# extensiondir declared in configure.ac
+nodist_extension_DATA = metadata.json
+dist_extension_DATA = metadata.json.in
 
 metadata.json: metadata.json.in $(top_builddir)/config.status
-	$(AM_V_GEN) sed -e "s|[@]LOCALEDIR@|$(datadir)/locale|" \
+	$(AM_V_GEN) sed -e "s|[@]LOCALEDIR@|$(localedir)|" \
 	    -e "s|[@]GETTEXT_PACKAGE@|$(GETTEXT_PACKAGE)|" \
 	    -e "s|[@]uuid@|$(uuid)|" \
-	    -e "s|[@]url@|$(extensionurl)|" $< > $@
+	    -e "s|[@]url@|$(PACKAGE_BUGREPORT)|" $< > $@
 
 CLEANFILES = metadata.json
 
-icondir = $(datadir)/icons/hicolor/scalable/status
+# icondir declared in configure.ac
+iconsubdir = $(icondir)/hicolor/scalable/status
 
-icon_DATA = \
+iconsub_DATA = \
 	sensors-fan-symbolic.svg \
 	sensors-temperature-symbolic.svg \
 	sensors-voltage-symbolic.svg
@@ -30,4 +22,4 @@ gsettings_SCHEMAS = org.gnome.shell.extensions.sensors.gschema.xml
 
 @GSETTINGS_RULES@
 
-EXTRA_DIST += $(gsettings_SCHEMAS)
+EXTRA_DIST = $(gsettings_SCHEMAS)
