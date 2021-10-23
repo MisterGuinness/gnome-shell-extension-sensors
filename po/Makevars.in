@@ -80,3 +80,8 @@ PO_DEPENDS_ON_POT = no
 # "no".  Set this to no if the POT file and PO files are maintained
 # externally.
 DIST_DEPENDS_ON_UPDATE_PO = no
+
+# Addidtional vars to support specifying the installation directory
+# in lieu of a Makefile.am to create these
+uuid = @uuid@
+extensiondir = @extensiondir@
