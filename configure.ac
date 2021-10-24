@@ -1,7 +1,7 @@
 AC_PREREQ(2.63)
-dnl be carefull, the version needs to be in sync with your gnome shell version
+
 AC_INIT([gnome-shell-extension-sensors],[2.0],[https://github.com/MisterGuinness/gnome-shell-extension-sensors/issues])
-AC_SUBST(uuid, "Sensors@MisterGuinness")
+AC_SUBST(uuid, [Sensors@MisterGuinness])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([config])
@@ -24,53 +24,37 @@ PKG_PROG_PKG_CONFIG([0.22])
 
 GLIB_GSETTINGS
 
-AC_ARG_WITH(desktop-dir, [  --with-desktop-dir=PATH where to install desktop files (default=PREFIX/share)])
+dnl declare the four "helper" variables to position the four main directories
+dnl note: the locale, schema and icon directories can be in different locations
+dnl to the main extension directory (refer autogen.sh)
 
-if test "x$with_desktop_dir" != x; then
-  DESKTOP_DATADIR=$with_desktop_dir
-else
-  DESKTOP_DATADIR="$datadir"
-fi
+AC_ARG_WITH([extension-dir], [AS_HELP_STRING([--with-extension-dir], [extension directory])])
+AC_ARG_WITH([locale-dir], [AS_HELP_STRING([--with-locale-dir], [locale directory])])
+AC_ARG_WITH([schema-dir], [AS_HELP_STRING([--with-schema-dir], [schema directory])])
+AC_ARG_WITH([icon-dir], [AS_HELP_STRING([--with-icon-dir], [icon directory])])
 
-AM_CONDITIONAL(DESKTOP_DATADIR, test "x$with_desktop_dir" != xno)
-AC_SUBST(DESKTOP_DATADIR)
+dnl both localedir and gsettingsschemadir are existing variables, so I am
+dnl setting their values as the final step before generating the makefiles
 
-AC_ARG_WITH([local-install],
-	     [AS_HELP_STRING([--with-local-install],
-			     [install schemas and translations in a subdir of the extension (default is no)])],
-	     [use_local_install=$withval],
-	     [use_local_install=no])
+AC_SUBST(extensiondir, [$with_extension_dir])
+AC_SUBST(localedir, [$with_locale_dir])
+AC_SUBST(gsettingsschemadir, [$with_schema_dir])
+AC_SUBST(icondir, [$with_icon_dir])
 
-AC_SUBST(use_local_install)
-AM_CONDITIONAL(LOCAL_INSTALL, test "x${use_local_install}" == "xyes")
+dnl generate po/Makevars before po/Makefile as there is no Makefile.am for the
+dnl translations - Makevars is *inserted* into the Makefile automagically, but
+dnl after the substitutions have been done.  In order to get the uuid and
+dnl extension-dir variables set in the Makefile (via Makevars), without a
+dnl Makefile.am to drive it, the Makevars need to be generated first. So until
+dnl I find a better way, the approach is to treat Makevars like a make file and
+dnl ac_subst do its thing
 
-extensiontopdir=${datadir}/gnome-shell/extensions/weather@gnome-shell-extensions.gnome.org
-
-dnl This is beyond ugly. Suggestions accepted.
-if test "x${use_local_install}" == "xyes"; then
-   AC_SUBST(gsettingsschemadir, [${extensiontopdir}/schemas])
-   AC_SUBST(LOCALEDIR, [${extensiontopdir}/locale])
-else
-   AC_SUBST(LOCALEDIR, [${datadir}/locale])
-fi
-
-dnl Please keep this sorted alphabetically.
 AC_CONFIG_FILES([
   Makefile
   data/Makefile
+  po/Makevars
   po/Makefile.in
   src/Makefile
 ])
+
 AC_OUTPUT
-
-dnl 'Fugly hack' doesn't get close to describe this. I don't know how else
-dnl to change the directory for translations.
-if test "x${use_local_install}" == "xyes"; then
-   ${SED} -i -e "s%itlocaledir = .*%itlocaledir = ${extensiontopdir}/locale%g" po/Makefile
-fi
-
-if test "x$use_local_install" == "xyes"; then
-   echo
-   echo "The schemas and translations will be installed in subdirectories of the extension."
-   echo
-fi
