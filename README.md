@@ -87,15 +87,15 @@ Installed:
 Installed:
   make-1:4.3-2.fc33.x86_64
 
-Then run autogen:
+Then configure for a local installation (for your user):
 
     ./autogen.sh
 
-You can install this extension for your user by executing:
+Build any generated files (eg updated translations):
 
-    make local-install
+    make
 
-or system wide by executing (this requires root permissions):
+You can install this extension by executing:
 
     make install
 
