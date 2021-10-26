@@ -62,6 +62,7 @@ The build dependenciesare:
 * *zip*,
 * *autoconf*,
 * *automake*,
+* *gettext-devel*
 
 From stock Fedora, the following installs are necessary to cover the build dependencies:
 
@@ -86,6 +87,11 @@ Installed:
 
 Installed:
   make-1:4.3-2.fc33.x86_64
+
+    sudo dnf install gettext-devel
+
+Installed:
+  gettext-common-devel-0.21-3.fc33.noarch      gettext-devel-0.21-3.fc33.x86_64
 
 Then configure for a local installation (for your user):
 
