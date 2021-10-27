@@ -18,6 +18,14 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE",
                    [The prefix for our gettext translation domains.])
 
 AM_GNU_GETTEXT([external])
+
+dnl Note that autoreconf currently doesn’t recognise
+dnl AM_GNU_GETTEXT_REQUIRE_VERSION, so we must continue also using
+dnl AM_GNU_GETTEXT_VERSION. autopoint will ignore the latter if the former
+dnl is present, and copy files from the installed version as long as it is
+dnl greater than that specified below.
+
+AM_GNU_GETTEXT_VERSION([0.19.8.1])
 AM_GNU_GETTEXT_REQUIRE_VERSION([0.19.8.1])
 
 PKG_PROG_PKG_CONFIG([0.22])
