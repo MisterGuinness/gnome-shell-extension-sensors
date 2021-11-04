@@ -27,6 +27,7 @@ match the Gnome version.
 |1.3|32|3.36|
 |1.3|31|3.34|
 |1.3|30|3.32|
+
 ![screenshot]
 
 Installation
