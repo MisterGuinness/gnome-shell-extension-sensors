@@ -1,19 +1,32 @@
-This extension is being updated against my Fedora distribution, typically for each odd numbered release, for my own use. Of course you are welcome to **manually** install it using the **Manual Installation** instructions below.
-
-Currently supporting **Fedora 33 and 34**.
-
 gnome-shell-extension-sensors
 =============================
 *gnome-shell-extension-sensors* (previously known as gnome-shell-extension-cpu-temperature)
-is an extension for displaying CPU temperature, hard disk temperature, voltage and
-CPU fan RPM in GNOME Shell.
+is an extension for displaying CPU temperature, hard disk temperature, voltage
+and CPU fan RPM in GNOME Shell.
 
-The extension uses [sensors] from lm_sensors package (lm-sensors for Debian systems)
-to read temperature for different CPU cores and adapters, voltage data and fan speed.
+The extension uses [sensors] from lm_sensors package (lm-sensors for Debian
+systems) to read temperature for different CPU cores and adapters, voltage data
+and fan speed.
 
-Optionally, this extension uses the [UDisks2] dbus interface or [hddtemp] as fallback to
-read hard drive temperature data.
+Optionally, this extension uses the [UDisks2] dbus interface or [hddtemp] as
+fallback to read hard drive temperature data.
 
+This extension is being updated against my Fedora distribution. Of course you
+are welcome to **manually** install it using the **Manual Installation** instructions below.
+
+Version Support Matrix
+---
+I mention Fedora here because that is what I use, for other distributions just
+match the Gnome version.
+
+|Extension Version|Fedora|Gnome Shell|
+|---|---|---|
+|2.0 (current)|35|41|
+|2.0|34|40|
+|2.0|33|3.38|
+|1.3|32|3.36|
+|1.3|31|3.34|
+|1.3|30|3.32|
 ![screenshot]
 
 Installation
@@ -66,32 +79,7 @@ The build dependenciesare:
 
 From stock Fedora, the following installs are necessary to cover the build dependencies:
 
-    sudo dnf install autoconf
-
-Installed:
-  autoconf-2.69-34.fc33.noarch
-
-    sudo dnf install automake
-
-Installed:
-  automake-1.16.2-2.fc33.noarch
-
-    sudo dnf install glib2-devel
-
-Installed:
-  glib2-devel-2.66.2-1.fc33.x86_64      libblkid-devel-2.36-3.fc33.x86_64      libffi-devel-3.1-26.fc33.x86_64      libmount-devel-2.36-3.fc33.x86_64      libselinux-devel-3.1-2.fc33.x86_64     
-  libsepol-devel-3.1-3.fc33.x86_64      pcre-cpp-8.44-1.fc33.1.x86_64          pcre-devel-8.44-1.fc33.1.x86_64      pcre-utf16-8.44-1.fc33.1.x86_64        pcre-utf32-8.44-1.fc33.1.x86_64        
-  pcre2-devel-10.35-7.fc33.x86_64       zlib-devel-1.2.11-22.fc33.x86_64
-
-    sudo dnf install make
-
-Installed:
-  make-1:4.3-2.fc33.x86_64
-
-    sudo dnf install gettext-devel
-
-Installed:
-  gettext-common-devel-0.21-3.fc33.noarch      gettext-devel-0.21-3.fc33.x86_64
+    sudo dnf install autoconf automake glib2-devel make gettext-devel
 
 Then configure for a local installation (for your user):
 
