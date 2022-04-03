@@ -132,10 +132,8 @@ const SensorsMenuButton = new Lang.Class({
         const oldLocale = Utilities.overrideLocale();
 
         tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
-        tempInfo = tempInfo.filter(Utilities.filterTemperature);
         if (display_fan_rpm){
             fanInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseFanRPMLine);
-            fanInfo = fanInfo.filter(Utilities.filterFan);
         }
         if (display_voltage){
             voltageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseVoltageLine);
@@ -181,7 +179,7 @@ const SensorsMenuButton = new Lang.Class({
                 sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
             for (const voltage of voltageInfo){
-                sensorsList.push(new SensorsItem('voltage', voltage['label'], _("%s%.2fV").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'])));
+                sensorsList.push(new SensorsItem('voltage', voltage['label'], _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit'])));
             }
 
             this.statusLabel.set_text(_("N/A")); // Just in case
