@@ -150,18 +150,28 @@ function parseFanRPMLine(label, value) {
     return sensor;
 }
 
-function parseVoltageLine(label, value) {
+function parseVoltageLine(label, info) {
     let sensor = undefined;
-    if(label != undefined && value != undefined) {
-        let curValue = value.trim().split('  ')[0];
-        // does the current value look like a voltage line?
-        if(curValue.indexOf("V", curValue.length - "V".length) !== -1){
-            sensor = new Array();
-            let r;
-            sensor['label'] = label.trim();
-            sensor['volt'] = parseFloat(curValue.split(' ')[0]);
-            sensor['min'] = (r = /min=(\d{1,3}.\d)/.exec(value)) ? parseFloat(r[1]) : undefined;
-            sensor['max'] = (r = /max=(\d{1,3}.\d)/.exec(value)) ? parseFloat(r[1]) : undefined;
+    if(label != undefined && info != undefined) {
+        let fields = info.trim().split(' ');
+        // voltage info starts with [value][space][unit],
+        // so should yield more than one field
+        if (fields.length > 1 ) {
+            let value = fields[0];
+            let unit = fields[1];
+            // only check further if the unit is not empty (excluding temps)
+            if (unit.length > 0) {
+                // does the unit look like a voltage (ends with V)?
+                if (unit.lastIndexOf("V") == unit.length - "V".length) {
+                    sensor = new Array();
+                    let r;
+                    sensor['label'] = label.trim();
+                    sensor['volt'] = parseFloat(value);
+                    sensor['unit'] = unit;
+                    sensor['min'] = (r = /min=(\d{1,3}.\d)/.exec(info)) ? parseFloat(r[1]) : undefined;
+                    sensor['max'] = (r = /max=(\d{1,3}.\d)/.exec(info)) ? parseFloat(r[1]) : undefined;
+                }
+            }
         }
     }
     return sensor;
@@ -192,18 +202,6 @@ function parseHddTempOutput(txt, sep) {
             sensors.push(sensor);
     }
     return sensors;
-}
-
-function filterTemperature(tempInfo) {
-    return tempInfo['temp'] > 0 && tempInfo['temp'] < 115;
-}
-
-function filterFan(fanInfo) {
-    return fanInfo['rpm'] > 0;
-}
-
-function filterVoltage(voltageInfo) {
-    return true;
 }
 
 var Future = new Lang.Class({
