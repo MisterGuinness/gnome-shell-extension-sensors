@@ -191,12 +191,10 @@ const SensorsPrefsWidget = new GObject.Class({
             {
                 let output = ByteArray.toString(sensors_output);
                 let tempInfo = Utilities.parseSensorsOutput(output,Utilities.parseSensorsTemperatureLine);
-                tempInfo = tempInfo.filter(Utilities.filterTemperature);
                 this._appendMultipleItems(tempInfo);
 
                 if (this._display_fan_rpm){
                     let fanInfo = Utilities.parseSensorsOutput(output,Utilities.parseFanRPMLine);
-                    fanInfo = fanInfo.filter(Utilities.filterFan);
                     this._appendMultipleItems(fanInfo);
                 }
                 if (this._display_voltage){
