@@ -17,11 +17,6 @@ const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
 
-const modelColumn = {
-    label: 0,
-    separator: 1
-}
-
 function init() {
     ExtensionUtils.initTranslations();
 }
@@ -120,12 +115,10 @@ const SensorsPrefsWidget = new GObject.Class({
 
         }
 
-        //List of items of the ComboBox
-        this._model =  new Gtk.ListStore();
-        this._model.set_column_types([GObject.TYPE_STRING, GObject.TYPE_BOOLEAN]);
-        this._appendItem(_("Average"));
-        this._appendItem(_("Maximum"));
-        this._appendSeparator();
+        // List of sensor labels
+        this._sensorList = new Gtk.StringList();
+        this._sensorList.append(_("Average"));
+        this._sensorList.append(_("Maximum"));
 
         //Get current options
         this._display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
@@ -137,19 +130,13 @@ const SensorsPrefsWidget = new GObject.Class({
         this._getUdisksLabels();
 
         if(this._display_hdd_temp) {
-            this._appendSeparator();
             this._getHddTempLabels();
         }
 
-        // ComboBox to select which sensor to show in panel
-        this._sensorSelector = new Gtk.ComboBox({ model: this._model });
-        this._sensorSelector.set_active_iter(this._getActiveSensorIter());
-        this._sensorSelector.set_row_separator_func(Lang.bind(this, this._comboBoxSeparator));
-
-        let renderer = new Gtk.CellRendererText();
-        this._sensorSelector.pack_start(renderer, true);
-        this._sensorSelector.add_attribute(renderer, 'text', modelColumn.label);
-        this._sensorSelector.connect('changed', Lang.bind(this, this._onSelectorChanged));
+        // select which sensor to show in panel
+        this._sensorSelector = Gtk.DropDown.new( this._sensorList, null );
+        this._sensorSelector.set_selected(this._findActiveSensor());
+        this._sensorSelector.connect('notify::selected-item', this._onSelectorChanged.bind(this));
 
         this.attach(new Gtk.Label({ label: _("Sensor in panel"), halign: Gtk.Align.END }), 0, ++counter, 1, 1);
         this.attach(this._sensorSelector, 1, counter , 1, 1);
@@ -165,22 +152,10 @@ const SensorsPrefsWidget = new GObject.Class({
         Utilities.restoreLocale(oldLocale);
     },
 
-    _comboBoxSeparator: function(model, iter, data) {
-        return model.get_value(iter, modelColumn.separator);
-    },
-
-    _appendItem: function(label) {
-        this._model.set(this._model.append(), [modelColumn.label], [label]);
-    },
-
     _appendMultipleItems: function(sensorInfo) {
         for (const sensor of sensorInfo) {
-            this._model.set(this._model.append(), [modelColumn.label], [sensor['label']]);
+            this._sensorList.append(sensor['label']);
         }
-    },
-
-    _appendSeparator: function() {
-        this._model.set (this._model.append(), [modelColumn.separator], [true]);
     },
 
     _getSensorsLabels: function() {
@@ -225,22 +200,28 @@ const SensorsPrefsWidget = new GObject.Class({
         }).bind(this));
     },
 
-    _getActiveSensorIter: function() {
-        var success;
-        var iter;
-        /* Get the first iter in the list */
-        [success, iter] = this._model.get_iter_first();
-        let sensorLabel = this._model.get_value(iter, 0);
+    _findActiveSensor: function() {
+        let activeSensor = this._settings.get_string('main-sensor');
 
-        while (success) {
-            /* Walk through the list, reading each row */
-            let sensorLabel = this._model.get_value(iter, 0);
-            if(sensorLabel == this._settings.get_string('main-sensor'))
-               break;
+        let position = 0;
+        let label = this._sensorSelector.get_model().get_string(position);
+        let found = false;
 
-            success = this._model.iter_next(iter);
+        while (label && !found) {
+            if (label == activeSensor) {
+                found = true;
+            }
+            else {
+                label = this._sensorSelector.get_model().get_string(++position);
+            }
         }
-        return iter;
+
+        if (!found) {
+            // default to first item in list
+            position = 0;
+        }
+
+        return position;
     },
 
     _onUpdateTimeChanged: function (update_time) {
@@ -253,14 +234,11 @@ const SensorsPrefsWidget = new GObject.Class({
         }
     },
 
-    _onSelectorChanged: function (comboBox) {
-        let [success, iter] = comboBox.get_active_iter();
-        if (!success)
-            return;
-
-        let label = this._model.get_value(iter, modelColumn.label);
+    _onSelectorChanged: function (selector) {
+        let position = selector.get_selected();
+        let label = selector.get_model().get_string(position);
         this._settings.set_string('main-sensor', label);
-    },
+    }
 
 });
 
