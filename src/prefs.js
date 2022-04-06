@@ -17,11 +17,6 @@ const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
 
-const modelColumn = {
-    label: 0,
-    separator: 1
-}
-
 function init() {
     ExtensionUtils.initTranslations();
 }
