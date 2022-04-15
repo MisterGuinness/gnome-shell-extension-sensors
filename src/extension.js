@@ -1,4 +1,4 @@
-const St = imports.gi.St;
+const {St, Clutter, Gio, GObject} = imports.gi;
 const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
@@ -8,27 +8,24 @@ const Mainloop = imports.mainloop;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
-const Shell = imports.gi.Shell;
 const Utilities = Me.imports.utilities;
 
 const Gettext = imports.gettext;
 const Domain = Gettext.domain(Me.metadata['gettext-domain']);
 const _ = Domain.gettext;
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const ByteArray = imports.byteArray
+const ByteArray = imports.byteArray;
 
 let metadata = Me.metadata;
 let extensionPath;
 
-const SensorsItem = new Lang.Class({
-    Name: 'SensorsItem',
-    Extends: PopupMenu.PopupBaseMenuItem,
+const SensorsItem = GObject.registerClass({
+    GTypeName: 'SensorsItem'
+    }, class SensorsItem
+    extends PopupMenu.PopupBaseMenuItem {
 
-    _init: function(type, label, value) {
-        this.parent();
+    _init(type, label, value) {
+        super._init();
         this._settings = ExtensionUtils.getSettings();
         this._label = label;
         this._value = value;
@@ -37,31 +34,31 @@ const SensorsItem = new Lang.Class({
         this.add(new St.Icon({gicon: sensorIcon, style_class: 'popup-menu-icon'}));
         this.add(new St.Label({text: label}));
         this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
-    },
+    }
 
-    getPanelString: function() {
+    getPanelString() {
         if(this._settings.get_boolean('display-label'))
             return '%s: %s'.format(this._label, this._value);
         else
             return this._value;
-    },
+    }
 
-    setMainSensor: function() {
+    setMainSensor() {
         this.setOrnament(PopupMenu.Ornament.DOT);
-    },
+    }
 
-    getLabel: function() {
+    getLabel() {
         return this._label;
-    },
+    }
 });
 
-const SensorsMenuButton = new Lang.Class({
-    Name: 'SensorsMenuButton',
+const SensorsMenuButton = GObject.registerClass({
+    GTypeName: 'SensorsMenuButton'
+    }, class SensorsMenuButton
+    extends PanelMenu.Button {
 
-    Extends: PanelMenu.Button,
-
-    _init: function(){
-        this.parent(null, 'sensorMenu');
+    _init() {
+        super._init(null, 'sensorMenu');
 
         this._settings = ExtensionUtils.getSettings();
         this._sensorsOutput = '';
@@ -95,15 +92,15 @@ const SensorsMenuButton = new Lang.Class({
             // readd to update queue
             return true;
         }));
-    },
+    }
 
-    _onDestroy: function(){
+    _onDestroy() {
         Mainloop.source_remove(this._eventLoop);
         this.menu.removeAll();
         this._settings.disconnect(this._settingsChanged);
-    },
+    }
 
-    _querySensors: function(){
+    _querySensors() {
         if (this.sensorsArgv){
             this._sensorsFuture = new Utilities.Future(this.sensorsArgv, Lang.bind(this,function(stdout){
                 this._sensorsOutput = stdout;
@@ -119,9 +116,9 @@ const SensorsMenuButton = new Lang.Class({
                 this._hddtempFuture = undefined;
             }));
         }
-    },
+    }
 
-    _updateDisplay: function(sensors_output, hddtemp_output){
+    _updateDisplay(sensors_output, hddtemp_output) {
         let display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
         let display_voltage = this._settings.get_boolean('display-voltage');
 
@@ -236,13 +233,13 @@ const SensorsMenuButton = new Lang.Class({
         this.menu.addMenuItem(section);
 
         Utilities.restoreLocale(oldLocale);
-    },
+    }
 
-    _toFahrenheit: function(c){
+    _toFahrenheit(c) {
         return ((9/5)*c+32);
-    },
+    }
 
-    _formatTemp: function(value) {
+    _formatTemp(value) {
         if (this._settings.get_string('unit')=='Fahrenheit'){
             value = this._toFahrenheit(value);
         }
