@@ -1,5 +1,4 @@
 const {St, Clutter, Gio, GObject} = imports.gi;
-const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Main = imports.ui.main;
@@ -76,22 +75,22 @@ const SensorsMenuButton = GObject.registerClass({
         }
 
         this.udisksProxies = [];
-        Utilities.UDisks.get_drive_ata_proxies(Lang.bind(this, function(proxies) {
+        Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
             this.udisksProxies = proxies;
             this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
-        }));
+        });
 
-        this._settingsChanged = this._settings.connect('changed', Lang.bind(this, this._querySensors));
-        this.connect('destroy', Lang.bind(this, this._onDestroy));
+        this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
         // don't postprone the first call by update-time.
         this._querySensors();
 
-        this._eventLoop = Mainloop.timeout_add_seconds(this._settings.get_int('update-time'), Lang.bind(this, function (){
+        this._eventLoop = Mainloop.timeout_add_seconds(this._settings.get_int('update-time'), () => {
             this._querySensors();
-            // readd to update queue
+            // NOTE: return true to continuously fire the timer
             return true;
-        }));
+        });
     }
 
     _onDestroy() {
@@ -102,20 +101,22 @@ const SensorsMenuButton = GObject.registerClass({
 
     _querySensors() {
         if (this.sensorsArgv){
-            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, Lang.bind(this,function(stdout){
+            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout) => {
                 this._sensorsOutput = stdout;
                 this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
                 this._sensorsFuture = undefined;
-            }));
+            });
         }
 
         if (this.hddtempArgv){
-            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, Lang.bind(this,function(stdout){
+            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, (stdout) => {
                 this._hddtempOutput = stdout;
                 this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
                 this._hddtempFuture = undefined;
-            }));
+            });
         }
+
+        return true;
     }
 
     _updateDisplay(sensors_output, hddtemp_output) {
@@ -189,9 +190,9 @@ const SensorsMenuButton = GObject.registerClass({
                         item.setMainSensor();
                         this.statusLabel.set_text(item.getPanelString());
                     }
-                    item.connect('activate', Lang.bind(this, function () {
+                    item.connect('activate', () => {
                         this._settings.set_string('main-sensor', item.getLabel());
-                    }));
+                    });
                 }
                 section.addMenuItem(item);
             }
@@ -204,9 +205,9 @@ const SensorsMenuButton = GObject.registerClass({
             // Label to switch columns and not totally break the layout.
             item.actor.add(new St.Label({ text: '' }));
             item.actor.add(new St.Label({ text: _("Sensors Settings") }));
-            item.connect('activate', Lang.bind(this, function () {
+            item.connect('activate', () => {
                 imports.misc.extensionUtils.openPrefs();
-            }));
+            });
             section.addMenuItem(item);
 
             // time of update

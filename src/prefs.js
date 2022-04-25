@@ -2,7 +2,6 @@ const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
 const ByteArray = imports.byteArray;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -40,7 +39,7 @@ const SensorsPrefsWidget = new GObject.Class({
         update_time.set_value(this._settings.get_int('update-time'));
         update_time.set_digits(0);
         update_time.set_hexpand(true);
-        update_time.connect('value-changed', Lang.bind(this, this._onUpdateTimeChanged));
+        update_time.connect('value-changed', this._onUpdateTimeChanged.bind(this));
         update_time.set_draw_value(true);
         this.attach(update_time, 1, 0, 1, 1);
 
@@ -60,8 +59,9 @@ const SensorsPrefsWidget = new GObject.Class({
             fahrenheitRadio = new Gtk.CheckButton({ group: centigradeRadio, label: _("Fahrenheit") });
         }
 
-        fahrenheitRadio.connect('toggled', Lang.bind(this, this._onUnitChanged, 'Fahrenheit'));
-        centigradeRadio.connect('toggled', Lang.bind(this, this._onUnitChanged, 'Centigrade'));
+        fahrenheitRadio.connect('toggled', this._onUnitChanged.bind(this, 'Fahrenheit'));
+        centigradeRadio.connect('toggled', this._onUnitChanged.bind(this, 'Centigrade'));
+
         if (this._settings.get_string('unit')=='Centigrade')
             centigradeRadio.active = true;
         else
@@ -228,7 +228,7 @@ const SensorsPrefsWidget = new GObject.Class({
         this._settings.set_int('update-time', update_time.get_value());
     },
 
-    _onUnitChanged: function (button, unit) {
+    _onUnitChanged: function (unit, button) {
         if (button.get_active()) {
             this._settings.set_string('unit', unit);
         }
