@@ -45,8 +45,8 @@ const SensorsPrefsWidget = new GObject.Class({
 
         this.attach(new Gtk.Label({ label: _("Temperature unit"), halign: Gtk.Align.END }), 0, 2, 1, 1);
 
-        this.centigradeRadio = null;
-        this.fahrenheitRadio = null;
+        let centigradeRadio = null;
+        let fahrenheitRadio = null;
 
         if (shellVersion < 40) {
             //Shell 3.38 or lower
