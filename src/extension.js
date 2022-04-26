@@ -226,7 +226,7 @@ const SensorsMenuButton = GObject.registerClass({
                     : _("Please install lm_sensors.")) + "\n" + _("If this doesn\'t help, click here to report with your sensors output!")
             );
             item.connect('activate',function() {
-                Util.spawn(["xdg-open", "http://github.com/xtranophilist/gnome-shell-extension-sensors/issues/"]);
+                Util.spawn(["xdg-open", "http://github.com/MisterGuinness/gnome-shell-extension-sensors/issues/"]);
             });
             section.addMenuItem(item);
         }
