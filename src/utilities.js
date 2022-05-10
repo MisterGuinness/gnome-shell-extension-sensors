@@ -209,7 +209,6 @@ var Future = GObject.registerClass({
     extends GObject.Object {
 
     _init(argv, callback) {
-        try{
             this._callback = callback;
             let [exit, pid, stdin, stdout, stderr] =
                 GLib.spawn_async_with_pipes(null, /* cwd */
@@ -220,32 +219,54 @@ var Future = GObject.registerClass({
             this._stdout = new Gio.UnixInputStream({fd: stdout, close_fd: true});
             this._dataStdout = new Gio.DataInputStream({base_stream: this._stdout});
             new Gio.UnixOutputStream({fd: stdin, close_fd: true}).close(null);
-            new Gio.UnixInputStream({fd: stderr, close_fd: true}).close(null);
+
+            this._stderr = new Gio.UnixInputStream({fd: stderr, close_fd: true})
+            this._dataStderr = new Gio.DataInputStream({base_stream: this._stderr});
 
             this._childWatch = GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, (pid, status, requestObj) => {
                 GLib.source_remove(this._childWatch);
             });
 
+            this._stdoutString = null;
+            this._hasError = false;
+
+            this._taskPendingCount = 2;
+
+            this._readStderr();
             this._readStdout();
-        } catch(e){
-            global.log(e.toString());
-        }
+    }
+
+    _readStderr() {
+        this._dataStderr.fill_async(-1, GLib.PRIORITY_DEFAULT, null, (stream, result) => {
+            if ( stream.fill_finish( result ) > stream.get_buffer_size() ) {
+                stream.set_buffer_size(2 * stream.get_buffer_size());
+                this._readStderr();
+            } else {
+                let text = ByteArray.toString(stream.peek_buffer());
+                this._hasError = (text && text.length > 0);
+                if (this._hasError) {
+                    logToJournal(text);
+                }
+                if ( --this._taskPendingCount == 0 ) {
+                    this._callback(this._stdoutString, this._hasError);
+                }
+                this._stderr.close(null);
+            }
+        });
     }
 
     _readStdout() {
         this._dataStdout.fill_async(-1, GLib.PRIORITY_DEFAULT, null, (stream, result) => {
-            if (stream.fill_finish(result) == 0){
-                try{
-                    this._callback(ByteArray.toString(stream.peek_buffer()));
-                }catch(e){
-                    global.log(e.toString());
+            if ( stream.fill_finish(result) > stream.get_buffer_size() ) {
+                stream.set_buffer_size(2 * stream.get_buffer_size());
+                this._readStdout();
+            } else {
+                this._stdoutString = ByteArray.toString(stream.peek_buffer());
+                if ( --this._taskPendingCount == 0 ) {
+                    this._callback(this._stdoutString, this._hasError);
                 }
                 this._stdout.close(null);
-                return;
             }
-
-            stream.set_buffer_size(2 * stream.get_buffer_size());
-            this._readStdout();
         });
     }
 });
@@ -263,6 +284,11 @@ const Async = {
             }).bind(null, i)); // i needs to be bound since it will be changed during the next iteration
         }
     }
+}
+
+function logToJournal(s)
+{
+    log( Me.metadata.name + ': ' + s );
 }
 
 function debug(str){
