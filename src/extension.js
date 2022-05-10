@@ -63,7 +63,7 @@ const SensorsMenuButton = GObject.registerClass({
         this._sensorsOutput = '';
         this._hddtempOutput = '';
 
-        this.statusLabel = new St.Label({ text: '\u2026', y_expand: true, y_align: Clutter.ActorAlign.CENTER });
+        this.statusLabel = new St.Label({ text: Me.metadata.name, y_expand: true, y_align: Clutter.ActorAlign.CENTER });
 
         this.menu.removeAll();
         this.add_actor(this.statusLabel);
@@ -77,7 +77,7 @@ const SensorsMenuButton = GObject.registerClass({
         this.udisksProxies = [];
         Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
             this.udisksProxies = proxies;
-            this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
+            this._updateDisplay(this._sensorsOutput, this._hddtempOutput, false);
         });
 
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
@@ -101,17 +101,17 @@ const SensorsMenuButton = GObject.registerClass({
 
     _querySensors() {
         if (this.sensorsArgv){
-            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout) => {
+            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout, hasError) => {
                 this._sensorsOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
+                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
                 this._sensorsFuture = undefined;
             });
         }
 
         if (this.hddtempArgv){
-            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, (stdout) => {
+            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, (stdout, hasError) => {
                 this._hddtempOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput);
+                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
                 this._hddtempFuture = undefined;
             });
         }
@@ -119,7 +119,7 @@ const SensorsMenuButton = GObject.registerClass({
         return true;
     }
 
-    _updateDisplay(sensors_output, hddtemp_output) {
+    _updateDisplay(sensors_output, hddtemp_output, hasError) {
         let display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
         let display_voltage = this._settings.get_boolean('display-voltage');
 
@@ -148,6 +148,12 @@ const SensorsMenuButton = GObject.registerClass({
 
         this.menu.removeAll();
         let section = new PopupMenu.PopupMenuSection("Temperature");
+
+        if (hasError) {
+            let item = new PopupMenu.PopupMenuItem("Please check system log for errors");
+            section.addMenuItem(item);
+        }
+
         if (this.sensorsArgv && tempInfo.length > 0){
             let sensorsList = new Array();
             let sum = 0; //sum
@@ -180,7 +186,6 @@ const SensorsMenuButton = GObject.registerClass({
                 sensorsList.push(new SensorsItem('voltage', voltage['label'], _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit'])));
             }
 
-            this.statusLabel.set_text(_("N/A")); // Just in case
 
             for (const item of sensorsList) {
                 if(item instanceof SensorsItem) {
