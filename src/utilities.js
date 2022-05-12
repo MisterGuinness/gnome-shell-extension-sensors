@@ -83,34 +83,44 @@ function detectHDDTemp() {
 }
 
 function parseSensorsOutput(txt,parser) {
-    let sensors_output = txt.split("\n");
-    let feature_label = undefined;
-    let feature_value = undefined;
-    let sensors = new Array();
-    //iterate through each lines
-    for(let i = 2; i < sensors_output.length; i++){
-        // ignore chipset driver name and 'Adapter:' line for now
-        // get every feature of the chip
-        if(sensors_output[i]){
-           // if it is not a continutation of a feature line
-           if(sensors_output[i].indexOf('  ') != 0){
-              let feature = parser(feature_label, feature_value);
-              if (feature){
-                  sensors.push(feature);
-                  feature = undefined;
-              }
-              [feature_label, feature_value] = sensors_output[i].split(':');
-           }
-           else{
-              feature_value += sensors_output[i];
-           }
+    let lines = txt.split("\n");
+    let numLines = lines.length;
+    let label = undefined;
+    let values = undefined;
+    let sensors = [];
+
+    let i = 0;
+
+    // the first sensor line for a chip is preceded by two "heading" lines, so
+    // to have a sensor there must be at least 2 more lines after the current
+    while ( i + 2 < numLines ) {
+        // ignore chipset driver name and 'Adapter:' lines for now
+        i += 2;
+
+        // get every sensor of the chip
+        // note: each chip's sensors end with a blank line
+        while ( i < numLines && lines[i] ) {
+            // a colon separates the sensor label from its value(s)
+            [label, values] = lines[i].split(':');
+            i++;
+
+            // concatenate values from following lines for the same sensor
+            // note: continuation lines start with a space
+            while ( i < numLines && lines[i] && lines[i].indexOf(' ') == 0 ) {
+                values += lines[i];
+                i++;
+            }
+
+            let sensor = parser( label, values );
+            if ( sensor ) {
+                sensors.push( sensor );
+            }
         }
+
+        // skip the blank line between chips
+        i++;
     }
-    let feature = parser(feature_label, feature_value);
-    if (feature) {
-        sensors.push(feature);
-        feature = undefined;
-    }
+
     return sensors;
 }
 
