@@ -35,14 +35,14 @@ if [ "$mode" = "local" ]; then
   params+=' --with-extension-dir=$(datarootdir)/gnome-shell/extensions/$(uuid)'
   params+=' --with-locale-dir=$(extensiondir)/locale'
   params+=' --with-schema-dir=$(extensiondir)/schemas'
-  params+=' --with-icon-dir=$(extensiondir)/icons'
+  params+=' --with-icon-dir=$(extensiondir)/icons/hicolor/scalable/status'
 else
   echo "*** NOTE: machine wide installation will be configured." >&2
   params='--prefix=/usr'
   params+=' --with-extension-dir=$(datarootdir)/gnome-shell/extensions/$(uuid)'
   params+=' --with-locale-dir=$(datarootdir)/locale'
   params+=' --with-schema-dir=$(datarootdir)glib-2.0/schemas'
-  params+=' --with-icon-dir=$(datarootdir)/icons'
+  params+=' --with-icon-dir=$(datarootdir)/icons/hicolor/scalable/status'
 fi
 
 autoreconf --verbose --force --install || exit 1
