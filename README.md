@@ -21,7 +21,9 @@ match the Gnome version.
 
 |Extension Version|Fedora|Gnome Shell|
 |---|---|---|
-|2.0 (current)|35|41|
+|2.0 (current)|37|43|
+|2.0|36|42|
+|2.0|35|41|
 |2.0|34|40|
 |2.0|33|3.38|
 |1.3|32|3.36|
