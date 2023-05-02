@@ -21,7 +21,8 @@ match the Gnome version.
 
 |Extension Version|Fedora|Gnome Shell|
 |---|---|---|
-|2.0 (current)|37|43|
+|2.0 (current)|38|44|
+|2.0|37|43|
 |2.0|36|42|
 |2.0|35|41|
 |2.0|34|40|
@@ -79,10 +80,11 @@ The build dependenciesare:
 * *autoconf*,
 * *automake*,
 * *gettext-devel*
+* *gcc*
 
 From stock Fedora, the following installs are necessary to cover the build dependencies:
 
-    sudo dnf install autoconf automake glib2-devel make gettext-devel
+    sudo dnf install gcc autoconf automake glib2-devel make gettext-devel
 
 Then configure for a local installation (for your user):
 
