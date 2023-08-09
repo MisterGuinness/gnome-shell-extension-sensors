@@ -197,7 +197,7 @@ const SensorsMenuButton = GObject.registerClass({
                     _("Maximum"),
                     this._formatTemp(max),
                     this._iconTemp
-               ));
+                ));
 
                 if(fanInfo.length > 0 || voltageInfo.length > 0)
                     sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
