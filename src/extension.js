@@ -23,31 +23,36 @@ const SensorsItem = GObject.registerClass({
     }, class SensorsItem
     extends PopupMenu.PopupBaseMenuItem {
 
-    _init(type, label, value) {
+    _init(label, value, icon) {
         super._init();
-        this._settings = ExtensionUtils.getSettings();
         this._label = label;
         this._value = value;
 
-        let sensorIcon = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-'+type+'-symbolic.svg');
-        this.add(new St.Icon({gicon: sensorIcon, style_class: 'popup-menu-icon'}));
+        this.add(new St.Icon({gicon: icon, style_class: 'popup-menu-icon'}));
         this.add(new St.Label({text: label}));
         this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
     }
 
-    getPanelString() {
-        if(this._settings.get_boolean('display-label'))
-            return '%s: %s'.format(this._label, this._value);
-        else
-            return this._value;
-    }
-
-    setMainSensor() {
-        this.setOrnament(PopupMenu.Ornament.DOT);
-    }
-
     getLabel() {
         return this._label;
+    }
+
+    getValue() {
+        return this._value;
+    }
+
+    configureCurrentSensor( currentSensorLabel ) {
+        // is this item the sensor the user wants to display in the panel button
+        // according to the label stored in the settings
+        if (this._label === currentSensorLabel) {
+
+            // mark the menu item visually
+            // to indicate it as the sensor in the panel button
+            this.setOrnament(PopupMenu.Ornament.DOT);
+
+            // indicate to caller that this menu item is for the current sensor
+            return true;
+        }
     }
 });
 
@@ -58,6 +63,11 @@ const SensorsMenuButton = GObject.registerClass({
 
     _init() {
         super._init(null, 'sensorMenu');
+
+        // create icons for menu
+        this._iconTemp = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
+        this._iconFan = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-fan-symbolic.svg');
+        this._iconVolt = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
 
         this._settings = ExtensionUtils.getSettings();
         this._sensorsOutput = '';
@@ -156,6 +166,9 @@ const SensorsMenuButton = GObject.registerClass({
 
         if (this.sensorsArgv && tempInfo.length > 0){
             let sensorsList = new Array();
+            let currentSensor = this._settings.get_string('main-sensor');
+            let displayLabelInPanel = this._settings.get_boolean('display-label');
+
             let sum = 0; //sum
             let max = 0; //max temp
             for (const temp of tempInfo){
@@ -163,65 +176,98 @@ const SensorsMenuButton = GObject.registerClass({
                 if (temp['temp'] > max)
                     max = temp['temp'];
 
-                sensorsList.push(new SensorsItem('temperature', temp['label'], this._formatTemp(temp['temp'])));
+                sensorsList.push(new SensorsItem(
+                    temp['label'],
+                    this._formatTemp(temp['temp']),
+                    this._iconTemp
+                ));
             }
+
             if (tempInfo.length > 0){
                 sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
 
                 // Add average and maximum entries
-                sensorsList.push(new SensorsItem('temperature', _("Average"), this._formatTemp(sum/tempInfo.length)));
-                sensorsList.push(new SensorsItem('temperature', _("Maximum"), this._formatTemp(max)));
+                sensorsList.push(new SensorsItem(
+                    _("Average"),
+                    this._formatTemp(sum/tempInfo.length),
+                    this._iconTemp
+                ));
+
+                sensorsList.push(new SensorsItem(
+                    _("Maximum"),
+                    this._formatTemp(max),
+                    this._iconTemp
+                ));
 
                 if(fanInfo.length > 0 || voltageInfo.length > 0)
                     sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
 
             for (const fan of fanInfo){
-                sensorsList.push(new SensorsItem('fan', fan['label'], _("%drpm").format(fan['rpm'])));
+                sensorsList.push(new SensorsItem(
+                    fan['label'],
+                    _("%drpm").format(fan['rpm']),
+                    this._iconFan
+                ));
             }
+
             if (fanInfo.length > 0 && voltageInfo.length > 0){
                 sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
-            for (const voltage of voltageInfo){
-                sensorsList.push(new SensorsItem('voltage', voltage['label'], _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit'])));
-            }
 
+            for (const voltage of voltageInfo){
+                sensorsList.push(new SensorsItem(
+                    voltage['label'],
+                    _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
+                    this._iconVolt
+                ));
+            }
 
             for (const item of sensorsList) {
                 if(item instanceof SensorsItem) {
-                    if (this._settings.get_string('main-sensor') == item.getLabel()) {
+                    let label = item.getLabel();
 
-                        // Configure as main sensor and set panel string
-                        item.setMainSensor();
-                        this.statusLabel.set_text(item.getPanelString());
+                    // clicking on this menu item will change the label stored
+                    // in the settings, which in turn will trigger a refresh
+                    // of the whole menu
+                    item.connect('activate',
+                        () => { this._settings.set_string('main-sensor', label); }
+                    );
+
+                    // one menu item should be for the current sensor, which
+                    // will also be displayed in the text of the panel button
+                    if ( item.configureCurrentSensor( currentSensor ) ){
+                        let buttonText = item.getValue();
+
+                        // the text for the panel button may include the sensor label
+                        if ( displayLabelInPanel ) {
+                            buttonText = label + ': ' + buttonText;
+                        }
+                        this.statusLabel.set_text(buttonText);
                     }
-                    item.connect('activate', () => {
-                        this._settings.set_string('main-sensor', item.getLabel());
-                    });
                 }
                 section.addMenuItem(item);
             }
 
-            // separator
             section.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-            let item = new PopupMenu.PopupBaseMenuItem();
-            // HACK: span and expand parameters don't work as expected on Label, so add an invisible
-            // Label to switch columns and not totally break the layout.
-            item.actor.add(new St.Label({ text: '' }));
-            item.actor.add(new St.Label({ text: _("Sensors Settings") }));
-            item.connect('activate', () => {
-                imports.misc.extensionUtils.openPrefs();
-            });
+            // settings
+
+            let item = new PopupMenu.PopupMenuItem( _("Sensors Settings") );
+            item.connect('activate',
+                () => { imports.misc.extensionUtils.openPrefs(); }
+            );
             section.addMenuItem(item);
 
             // time of update
-            let time = new PopupMenu.PopupBaseMenuItem();
-            time.actor.add(new St.Label({ text: '' }));
+
             /* TRANSLATORS: the placeholder is locale specific time that sensor
                values were last displayed in the menu */
-            time.actor.add(new St.Label({ text: _("Last Updated %s").format( new Date().toLocaleTimeString() ) }));
-            section.addMenuItem(time);
+            section.addMenuItem(
+                new PopupMenu.PopupMenuItem(
+                    _("Last Updated %s").format( new Date().toLocaleTimeString() )
+                )
+            );
         }else{
             this.statusLabel.set_text(_("Error"));
 
