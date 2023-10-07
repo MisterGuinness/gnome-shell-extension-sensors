@@ -1,22 +1,20 @@
-const {St, Clutter, Gio, GObject} = imports.gi;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
-const Main = imports.ui.main;
-const Util = imports.misc.util;
-const Mainloop = imports.mainloop;
+import GLib from 'gi://GLib'; // for timeout
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import Adw from 'gi://Adw';
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Utilities = Me.imports.utilities;
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Util from 'resource:///org/gnome/shell/misc/util.js'; // for spawn
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const Gettext = imports.gettext;
-const Domain = Gettext.domain(Me.metadata['gettext-domain']);
-const _ = Domain.gettext;
+import * as Utilities from './utilities.js';
 
 const ByteArray = imports.byteArray;
-
-let metadata = Me.metadata;
-let extensionPath;
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -61,22 +59,47 @@ const SensorsMenuButton = GObject.registerClass({
     }, class SensorsMenuButton
     extends PanelMenu.Button {
 
-    _init() {
+    _init( name )
+    {
         super._init(null, 'sensorMenu');
 
-        // create icons for menu
-        this._iconTemp = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
-        this._iconFan = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-fan-symbolic.svg');
-        this._iconVolt = Gio.icon_new_for_string(extensionPath + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
+        this._statusLabel = new St.Label({ text: name, y_expand: true, y_align: Clutter.ActorAlign.CENTER });
+        this.add_actor(this._statusLabel);
+    }
 
-        this._settings = ExtensionUtils.getSettings();
+    setLabel( label ) {
+        this._statusLabel.set_text( label );
+    }
+
+    addMenuItem( item ) {
+        this.menu.addMenuItem( item );
+    }
+
+    removeAll() {
+        this.menu.removeAll();
+    }
+});
+
+export default class SensorsExtension
+    extends Extension
+{
+    constructor(metadata) {
+        super(metadata);
+
+        // TODO: check if this is required, presence of schema domain should suffice
+        this.initTranslations();
+    }
+
+    enable() {
+        // create icons for menu
+        this._iconTemp = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
+        this._iconFan = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-fan-symbolic.svg');
+        this._iconVolt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
+
+        this._settings = this.getSettings();
+
         this._sensorsOutput = '';
         this._hddtempOutput = '';
-
-        this.statusLabel = new St.Label({ text: Me.metadata.name, y_expand: true, y_align: Clutter.ActorAlign.CENTER });
-
-        this.menu.removeAll();
-        this.add_actor(this.statusLabel);
 
         this.sensorsArgv = Utilities.detectSensors();
 
@@ -87,29 +110,43 @@ const SensorsMenuButton = GObject.registerClass({
         this.udisksProxies = [];
         Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
             this.udisksProxies = proxies;
-            this._updateDisplay(this._sensorsOutput, this._hddtempOutput, false);
         });
 
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
-        this.connect('destroy', this._onDestroy.bind(this));
 
-        // don't postprone the first call by update-time.
+        // don't postpone the first call by update-time.
         this._querySensors();
 
-        this._eventLoop = Mainloop.timeout_add_seconds(this._settings.get_int('update-time'), () => {
+        this._timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this._settings.get_int('update-time'), () => {
             this._querySensors();
-            // NOTE: return true to continuously fire the timer
-            return true;
+            // NOTE: return continue to fire the timer again
+            return GLib.SOURCE_CONTINUE;
         });
+
+        this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
+        Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
     }
 
-    _onDestroy() {
-        Mainloop.source_remove(this._eventLoop);
-        this.menu.removeAll();
+    disable() {
+        this._iconTemp = null;
+        this._iconFan = null;
+        this._iconVolt = null;
+
+        GLib.Source.remove(this._timeoutId);
+
+        // remove the menu button from the panel
+        // which will in turn remove the section,
+        // which will in turn remove the menu items
+        this._sensorsMenu.destroy();
+        this._sensorsMenu = null;
+
         this._settings.disconnect(this._settingsChanged);
+        this._settings = null;
     }
 
     _querySensors() {
+        // these are asynchronous calls, so the display is updated twice, ugly
+        // first with sensors output, then again with both sensors and hddtemp output
         if (this.sensorsArgv){
             this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout, hasError) => {
                 this._sensorsOutput = stdout;
@@ -148,7 +185,13 @@ const SensorsMenuButton = GObject.registerClass({
         }
 
         if(this.hddtempArgv)
-            tempInfo = tempInfo.concat(Utilities.parseHddTempOutput(hddtemp_output, !(/nc$/.exec(this.hddtempArgv[0])) ? ': ' : '|'));
+            // provide the drive label to utilities so all translations are
+            // performed inside this module
+            tempInfo = tempInfo.concat( Utilities.parseHddTempOutput(
+                    hddtemp_output,
+                    !(/nc$/.exec(this.hddtempArgv[0])) ? ': ' : '|',
+                    _("Drive %s")
+            ));
 
         tempInfo = tempInfo.concat(Utilities.UDisks.create_list_from_proxies(this.udisksProxies));
 
@@ -156,7 +199,7 @@ const SensorsMenuButton = GObject.registerClass({
         fanInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
         voltageInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
 
-        this.menu.removeAll();
+        this._sensorsMenu.removeAll();
         let section = new PopupMenu.PopupMenuSection("Temperature");
 
         if (hasError) {
@@ -243,7 +286,7 @@ const SensorsMenuButton = GObject.registerClass({
                         if ( displayLabelInPanel ) {
                             buttonText = label + ': ' + buttonText;
                         }
-                        this.statusLabel.set_text(buttonText);
+                        this._sensorsMenu.setLabel(buttonText);
                     }
                 }
                 section.addMenuItem(item);
@@ -255,7 +298,7 @@ const SensorsMenuButton = GObject.registerClass({
 
             let item = new PopupMenu.PopupMenuItem( _("Sensors Settings") );
             item.connect('activate',
-                () => { imports.misc.extensionUtils.openPrefs(); }
+                () => { this.openPreferences(); }
             );
             section.addMenuItem(item);
 
@@ -269,7 +312,7 @@ const SensorsMenuButton = GObject.registerClass({
                 )
             );
         }else{
-            this.statusLabel.set_text(_("Error"));
+            this._sensorsMenu.setLabel(_("Error"));
 
             let item = new PopupMenu.PopupMenuItem(
                 (this.sensorsArgv
@@ -282,7 +325,7 @@ const SensorsMenuButton = GObject.registerClass({
             section.addMenuItem(item);
         }
 
-        this.menu.addMenuItem(section);
+        this._sensorsMenu.addMenuItem(section);
 
         Utilities.restoreLocale(oldLocale);
     }
@@ -305,21 +348,4 @@ const SensorsMenuButton = GObject.registerClass({
         }
         return format.format(value, (this._settings.get_string('unit')=='Fahrenheit') ? "\u00b0F" : "\u00b0C");
     }
-});
-
-let sensorsMenu;
-
-function init(extensionMeta) {
-    ExtensionUtils.initTranslations();
-    extensionPath = extensionMeta.path;
-}
-
-function enable() {
-    sensorsMenu = new SensorsMenuButton();
-    Main.panel.addToStatusArea('sensorsMenu', sensorsMenu, 1, 'right');
-}
-
-function disable() {
-    sensorsMenu.destroy();
-    sensorsMenu = null;
 }
