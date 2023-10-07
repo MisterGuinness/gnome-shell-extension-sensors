@@ -1,11 +1,6 @@
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Gio = imports.gi.Gio;
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-
-const Gettext = imports.gettext;
-const Domain = Gettext.domain(Me.metadata['gettext-domain']);
-const _ = Domain.gettext;
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
 
 const ByteArray = imports.byteArray;
 
@@ -23,12 +18,12 @@ const UDisksDriveAtaProxy = Gio.DBusProxy.makeProxyWrapper(
     </interface>\
 </node>');
 
-function detectSensors() {
+export function detectSensors() {
     let path = GLib.find_program_in_path('sensors');
     return path ? [path] : undefined;
 }
 
-function detectHDDTemp() {
+export function detectHDDTemp() {
     let hddtempArgv = GLib.find_program_in_path('hddtemp');
     if(hddtempArgv) {
         // check if this user can run hddtemp directly.
@@ -82,7 +77,7 @@ function detectHDDTemp() {
     return undefined;
 }
 
-function parseSensorsOutput(txt,parser) {
+export function parseSensorsOutput(txt,parser) {
     let lines = txt.split("\n");
     let numLines = lines.length;
     let label = undefined;
@@ -124,7 +119,7 @@ function parseSensorsOutput(txt,parser) {
     return sensors;
 }
 
-function parseSensorsTemperatureLine(label, value) {
+export function parseSensorsTemperatureLine(label, value) {
     let sensor = undefined;
     if(label != undefined && value != undefined) {
         let curValue = value.trim().split('  ')[0];
@@ -143,7 +138,7 @@ function parseSensorsTemperatureLine(label, value) {
     return sensor;
 }
 
-function parseFanRPMLine(label, value) {
+export function parseFanRPMLine(label, value) {
     let sensor = undefined;
     if(label != undefined && value != undefined) {
         let curValue = value.trim().split('  ')[0];
@@ -159,7 +154,7 @@ function parseFanRPMLine(label, value) {
     return sensor;
 }
 
-function parseVoltageLine(label, info) {
+export function parseVoltageLine(label, info) {
     let sensor = undefined;
     if(label != undefined && info != undefined) {
         let fields = info.trim().split(' ');
@@ -186,7 +181,7 @@ function parseVoltageLine(label, info) {
     return sensor;
 }
 
-function parseHddTempOutput(txt, sep) {
+export function parseHddTempOutput(txt, sep, prefix) {
     let hddtemp_output = [];
     if (txt.indexOf((sep+sep), txt.length - (sep+sep).length) >= 0)
     {
@@ -204,7 +199,7 @@ function parseHddTempOutput(txt, sep) {
     {
         let sensor = new Array();
         let fields = line.split(sep).filter(function(e){ return e; });
-        sensor['label'] = _("Drive %s").format(fields[0].split('/').pop());
+        sensor['label'] = prefix.format(fields[0].split('/').pop());
         sensor['temp'] = parseFloat(fields[2]);
         //push only if the temp is a Number
         if (!isNaN(sensor['temp']))
@@ -213,7 +208,7 @@ function parseHddTempOutput(txt, sep) {
     return sensors;
 }
 
-var Future = GObject.registerClass({
+export var Future = GObject.registerClass({
     GTypeName: 'MrGFuture'
     }, class Future
     extends GObject.Object {
@@ -307,7 +302,7 @@ function debug(str){
 }
 
 // routines for handling of udisks2
-var UDisks = {
+export var UDisks = {
     // creates a list of sensor objects from the list of proxies given
     create_list_from_proxies: function(proxies) {
         return proxies.filter(function(proxy) {
@@ -362,7 +357,7 @@ var UDisks = {
     }
 };
 
-function overrideLocale() {
+export function overrideLocale() {
     const path = GLib.build_filenamev([GLib.get_user_config_dir(), "temperature@xtranophilist", "override_locale"]);
     const file = Gio.File.new_for_path(path);
 
@@ -388,7 +383,7 @@ function overrideLocale() {
     return currentLocale;
 };
 
-function restoreLocale(locale) {
+export function restoreLocale(locale) {
     if (locale != null) {
         Gettext.setlocale(Gettext.LocaleCategory.MESSAGES, locale);
     }
