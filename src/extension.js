@@ -51,6 +51,11 @@ const SensorsItem = GObject.registerClass({
             // indicate to caller that this menu item is for the current sensor
             return true;
         }
+        else
+        {
+            // add an empty ornament to maintain alignment in menu
+            this.setOrnament(PopupMenu.Ornament.NONE);
+        }
     }
 });
 
