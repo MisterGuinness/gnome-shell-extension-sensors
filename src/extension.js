@@ -107,10 +107,7 @@ export default class SensorsExtension
         this._hddtempOutput = '';
 
         this.sensorsArgv = Utilities.detectSensors();
-
-        if (this._settings.get_boolean('display-hdd-temp')){
-            this.hddtempArgv = Utilities.detectHDDTemp();
-        }
+        this.hddtempArgv = null;
 
         this.udisksProxies = [];
         Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
@@ -147,6 +144,8 @@ export default class SensorsExtension
 
         this._settings.disconnect(this._settingsChanged);
         this._settings = null;
+
+        this.hddtempArgv = null;
     }
 
     _querySensors() {
@@ -158,6 +157,21 @@ export default class SensorsExtension
                 this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
                 this._sensorsFuture = undefined;
             });
+        }
+
+        if (this._settings.get_boolean('display-hdd-temp'))
+        {
+            // if the command for hddtemp has not been previously identified
+            if ( this.hddtempArgv == null )
+            {
+                this.hddtempArgv = Utilities.detectHDDTemp();
+            }
+        }
+        else
+        {
+            // clear the hddtemp command if not required to run according to
+            // settings, turning on again will determine the command again
+            this.hddtempArgv = null;
         }
 
         if (this.hddtempArgv){
