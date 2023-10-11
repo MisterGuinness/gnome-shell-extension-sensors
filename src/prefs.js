@@ -201,10 +201,6 @@ export default class SensorsPreferences
 
                 radio.connect('toggled', () => { this._settings.set_string(settings_key, settingsValues[i]) });
             }
-
-            this._settings.connect('changed::unit', (settings, key) => {
-                console.log(`${key} = ${settings.get_value(key).print(true)}`);
-            });
         }
 
         return row;
