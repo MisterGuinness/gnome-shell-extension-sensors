@@ -322,11 +322,10 @@ export default class SensorsExtension
             section.addMenuItem(item);
 
             // time of update
-
-            /* TRANSLATORS: the placeholder is locale specific time that sensor
-               values were last displayed in the menu */
             section.addMenuItem(
                 new PopupMenu.PopupMenuItem(
+                    /* TRANSLATORS: the placeholder is locale specific time that sensor
+                       values were last displayed in the menu */
                     _("Last Updated %s").format( new Date().toLocaleTimeString() )
                 )
             );

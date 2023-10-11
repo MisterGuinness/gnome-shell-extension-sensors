@@ -95,7 +95,7 @@ export default class SensorsPreferences
         ));
 
         // create second group for panel related settings
-        group = new Adw.PreferencesGroup({ title: _('Sensor in Panel') });
+        group = new Adw.PreferencesGroup({ title: _('Sensor in panel') });
         page.add(group);
 
         // 8. sensor to display in panel
