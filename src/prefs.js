@@ -1,124 +1,112 @@
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
+import GLib from 'gi://GLib';   // only for spawn async
+import Gio from 'gi://Gio';
+import Adw from 'gi://Adw';
+import Gtk from 'gi://Gtk';
+
 const ByteArray = imports.byteArray;
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Utilities = Me.imports.utilities;
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 
-const Gettext = imports.gettext;
-const Domain = Gettext.domain(Me.metadata['gettext-domain']);
-const _ = Domain.gettext;
+import * as Utilities from './utilities.js';
 
-const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
 
-function init() {
-    ExtensionUtils.initTranslations();
-}
+export default class SensorsPreferences
+    extends ExtensionPreferences
+{
+    constructor(metadata) {
+        super(metadata);
 
-const SensorsPrefsWidget = new GObject.Class({
-    Name: 'Sensors.Prefs.Widget',
-    GTypeName: 'SensorsPrefsWidget',
-    Extends: Gtk.Grid,
+        this.initTranslations();
+    }
 
-    _init: function(params) {
-        this.parent(params);
-
+    fillPreferencesWindow(window) {
         const oldLocale = Utilities.overrideLocale();
 
-        this.margin_start = this.margin_end = this.margin_bottom = this.row_spacing = this.column_spacing = 20;
+        // increase the window height slightly to accommodate the new group
+        // titles, and moving the final checkbox onto a separate line
+        let width = 0, height = 0;
+        [ width, height ] = window.get_default_size();
+        window.set_default_size(width, height + 115);
 
-        this._settings = ExtensionUtils.getSettings();
+        // create a settings object
+        this._settings = this.getSettings();
 
-        this.attach(new Gtk.Label({ label: _("Poll sensors every (in seconds)"), halign: Gtk.Align.END }), 0, 0, 1, 1);
-        let update_time = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 5, 100, 5);
-        update_time.set_value(this._settings.get_int('update-time'));
-        update_time.set_digits(0);
-        update_time.set_hexpand(true);
-        update_time.connect('value-changed', this._onUpdateTimeChanged.bind(this));
-        update_time.set_draw_value(true);
-        this.attach(update_time, 1, 0, 1, 1);
+        // create a preferences page
+        const page = new Adw.PreferencesPage();
+        window.add(page);
 
-        this.attach(new Gtk.Label({ label: _("Temperature unit"), halign: Gtk.Align.END }), 0, 2, 1, 1);
+        // create a grouping for the settings related to sensors in the menu
+        let group = new Adw.PreferencesGroup({ title: _('Sensors in Menu') });
+        page.add(group);
 
-        let centigradeRadio = null;
-        let fahrenheitRadio = null;
+        // the settings...
+        // 1. poll time
+        group.add( this._bindSpinRowWithAdjustment(
+            'update-time',
+            _('Poll sensors every (in seconds)'),
+            5, 100, 5, 10
+        ));
 
-        if (shellVersion < 40) {
-            //Shell 3.38 or lower
-            centigradeRadio = new Gtk.RadioButton({ group: null, label: _("Centigrade"), valign: Gtk.Align.START });
-            fahrenheitRadio = new Gtk.RadioButton({ group: centigradeRadio, label: _("Fahrenheit"), valign: Gtk.Align.START });
-        }
-        else {
-            //Shell 40 or higher
-            centigradeRadio = new Gtk.CheckButton({ label: _("Centigrade") });
-            fahrenheitRadio = new Gtk.CheckButton({ group: centigradeRadio, label: _("Fahrenheit") });
-        }
+        // 2. temperature unit
+        group.add( this._bindActionRowWithRadios(
+           'unit',
+            _('Temperature unit'),
+            [ _('Centigrade'), _('Fahrenheit') ],
+            [ 'Centigrade', 'Fahrenheit' ]
+        ));
 
-        fahrenheitRadio.connect('toggled', this._onUnitChanged.bind(this, 'Fahrenheit'));
-        centigradeRadio.connect('toggled', this._onUnitChanged.bind(this, 'Centigrade'));
+        // 3. append temperature unit to temperatures
+        group.add( this._bindSwitchRow(
+            'display-degree-sign',
+            _('Display temperature unit'),
+            _('Show temperature unit in panel and menu.')
+        ));
 
-        if (this._settings.get_string('unit')=='Centigrade')
-            centigradeRadio.active = true;
-        else
-            fahrenheitRadio.active = true;
-        this.attach(centigradeRadio, 1, 2, 1, 1);
-        this.attach(fahrenheitRadio, 2, 2, 1, 1);
+        // 4. decimals
+        group.add( this._bindSwitchRow(
+            'display-decimal-value',
+            _('Display decimal value'),
+            _('Show one digit after decimal.')
+        ));
 
-        let boolSettings = {
-            display_degree_sign: {
-                name: "display-degree-sign",
-                label: _("Display temperature unit"),
-                help: _("Show temperature unit in panel and menu.")
-            },
-            display_decimal_value: {
-                name: "display-decimal-value",
-                label: _("Display decimal value"),
-                help: _("Show one digit after decimal.")
-           },
-           show_hdd_temp: {
-                name: "display-hdd-temp",
-                label: _("Display drive temperature"),
-           },
-           show_fan_rpm: {
-                name: "display-fan-rpm",
-                label: _("Display fan speed"),
-           },
-           show_voltage: {
-                name: "display-voltage",
-                label: _("Display power supply voltage"),
-           },
-        }
+        // 5. drive temps from hddtemp utility
+        group.add( this._bindSwitchRow(
+            'display-hdd-temp',
+            _('Display drive temperature') + ' (hddtemp)',
+            ''
+        ));
 
-        let counter = 3;
+        // 6. fans
+        group.add( this._bindSwitchRow(
+            'display-fan-rpm',
+            _('Display fan speed'),
+            ''
+        ));
 
-        for (let boolSetting in boolSettings){
-            let setting = boolSettings[boolSetting];
-            let settingLabel = new Gtk.Label({ label: setting.label, halign: Gtk.Align.END });
-            let settingSwitch = new Gtk.Switch({ active: this._settings.get_boolean(setting.name), halign: Gtk.Align.START });
-            let settings = this._settings;
-            settingSwitch.connect('notify::active', function(button) {
-                settings.set_boolean(setting.name, button.active);
-            });
+        // 7. voltages
+        group.add( this._bindSwitchRow(
+            'display-voltage',
+            _('Display power supply voltage'),
+            ''
+        ));
 
-            if (setting.help) {
-               settingLabel.set_tooltip_text(setting.help);
-               settingSwitch.set_tooltip_text(setting.help);
-            }
+        // create second group for panel related settings
+        group = new Adw.PreferencesGroup({ title: _('Sensor in panel') });
+        page.add(group);
 
-            this.attach(settingLabel, 0, counter, 1, 1);
-            this.attach(settingSwitch, 1, counter++, 1, 1);
+        // 8. sensor to display in panel
 
-        }
-
-        // List of sensor labels
+        // build the list of sensor labels for the combo
+        // note: GTK StringList provides a get_string method, and
+        // implements GIO GListModel which provides get_n_items
+        // GTK StringList is suitable for use in ComboRow model
         this._sensorList = new Gtk.StringList();
-        this._sensorList.append(_("Average"));
-        this._sensorList.append(_("Maximum"));
+        this._sensorList.append( _("Average") );
+        this._sensorList.append( _("Maximum") );
 
         //Get current options
         this._display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
@@ -133,32 +121,129 @@ const SensorsPrefsWidget = new GObject.Class({
             this._getHddTempLabels();
         }
 
-        // select which sensor to show in panel
-        this._sensorSelector = Gtk.DropDown.new( this._sensorList, null );
-        this._sensorSelector.set_selected(this._findActiveSensor());
-        this._sensorSelector.connect('notify::selected-item', this._onSelectorChanged.bind(this));
+        group.add( this._bindComboRow(
+            'main-sensor',
+            _('Sensor in panel'),
+            this._sensorList
+        ));
 
-        this.attach(new Gtk.Label({ label: _("Sensor in panel"), halign: Gtk.Align.END }), 0, ++counter, 1, 1);
-        this.attach(this._sensorSelector, 1, counter , 1, 1);
-
-        let settings = this._settings;
-        let checkButton = new Gtk.CheckButton({label: _("Display sensor label")});
-        checkButton.set_active(settings.get_boolean('display-label'));
-        checkButton.connect('toggled', function () {
-            settings.set_boolean('display-label', checkButton.get_active());
-        });
-        this.attach(checkButton, 2, counter , 1, 1);
+        // 9. include sensor name in panel
+        group.add( this._bindSwitchRow(
+            'display-label',
+            _('Display sensor label'),
+            ''
+        ));
 
         Utilities.restoreLocale(oldLocale);
-    },
+    }
 
-    _appendMultipleItems: function(sensorInfo) {
+    _appendMultipleItems(sensorInfo) {
         for (const sensor of sensorInfo) {
             this._sensorList.append(sensor['label']);
         }
-    },
+    }
 
-    _getSensorsLabels: function() {
+    _bindSpinRowWithAdjustment( settings_key, title, lower, upper, step, page )
+    {
+        if ( lower > 0 && upper > lower && step > 0 && page > step )
+        {
+            // create and adjustment to specify the bounds of the spinner
+            const adj = new Gtk.Adjustment({
+                lower: lower,
+                upper: upper,
+                step_increment: step,
+                page_increment: page } );
+
+            // create a new preferences row
+            const row = new Adw.SpinRow({
+                title: title,
+                adjustment: adj,
+                snap_to_ticks: true
+            });
+
+            // bind the row to the settings schema key
+            this._settings.bind(settings_key, row, 'value',
+                Gio.SettingsBindFlags.DEFAULT);
+
+            return row;
+        }
+    }
+
+    _bindActionRowWithRadios( settings_key, title, radioLabels, settingsValues )
+    {
+        // check that there is a minimum of 2 radio buttons to form a group
+        const radioCount = radioLabels.length;
+        const settingsCount = settingsValues.length;
+
+        // create a new preferences row
+        const row = new Adw.ActionRow({
+            title: title
+        });
+
+        if ( radioCount > 1 && settingsCount == radioCount )
+        {
+            let radio = new Gtk.CheckButton({ label: radioLabels[0] });
+            let first_radio = radio;
+
+            for( let i = 0; i < radioCount; i++ )
+            {
+                if ( i > 0 )
+                {
+                    radio = new Gtk.CheckButton({ group: first_radio, label: radioLabels[i] });
+                }
+
+                row.add_suffix( radio );
+
+                if ( this._settings.get_string( settings_key ) == settingsValues[i] )
+                {
+                    radio.active = true;
+                }
+
+                radio.connect('toggled', () => { this._settings.set_string(settings_key, settingsValues[i]) });
+            }
+        }
+
+        return row;
+    }
+
+    _bindSwitchRow( settings_key, title, subtitle )
+    {
+        // Create a new preferences row
+        const row = new Adw.SwitchRow({
+            title: title,
+            subtitle: subtitle
+        });
+
+        // bind the row to the settings schema key
+        this._settings.bind(settings_key, row, 'active',
+            Gio.SettingsBindFlags.DEFAULT);
+
+        return row;
+    }
+
+    _bindComboRow( settings_key, title, model )
+    {
+        // Create a new preferences row
+        const row = new Adw.ComboRow({
+            title: title,
+            model: model
+        });
+
+        const activeSensor = this._settings.get_string('main-sensor');
+        row.set_selected( this._findActiveSensor( row, activeSensor ));
+
+        // bind the row to the settings schema key
+        row.connect('notify::selected-item', (comboRow) =>
+        {
+            const position = comboRow.get_selected();
+            const value = comboRow.get_model().get_string(position);
+            this._settings.set_string( settings_key, value );
+        });
+
+        return row;
+    }
+
+    _getSensorsLabels() {
         let sensors_cmd = Utilities.detectSensors();
         if(sensors_cmd) {
             let [result, sensors_output] = GLib.spawn_command_line_sync(sensors_cmd.join(' '));
@@ -178,33 +263,35 @@ const SensorsPrefsWidget = new GObject.Class({
                 }
             }
         }
-    },
+    }
 
-    _getHddTempLabels: function() {
+    _getHddTempLabels() {
         let hddtemp_cmd = Utilities.detectHDDTemp();
         if(hddtemp_cmd){
             let [result, hddtemp_output] = GLib.spawn_command_line_sync(hddtemp_cmd.join(' '))
             if(result){
-                let hddTempInfo = Utilities.parseHddTempOutput(ByteArray.toString(hddtemp_output),
-                                        !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|');
+                let hddTempInfo = Utilities.parseHddTempOutput(
+                    ByteArray.toString(hddtemp_output),
+                    !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|',
+                    _("Drive %s")	
+		);
                 this._appendMultipleItems(hddTempInfo);
             }
         }
-    },
+    }
 
-    _getUdisksLabels: function() {
+    _getUdisksLabels() {
         Utilities.UDisks.get_drive_ata_proxies((function(proxies) {
             let list = Utilities.UDisks.create_list_from_proxies(proxies);
 
             this._appendMultipleItems(list);
         }).bind(this));
-    },
+    }
 
-    _findActiveSensor: function() {
-        let activeSensor = this._settings.get_string('main-sensor');
+    _findActiveSensor(comboRow, activeSensor) {
 
         let position = 0;
-        let label = this._sensorSelector.get_model().get_string(position);
+        let label = comboRow.get_model().get_string(position);
         let found = false;
 
         while (label && !found) {
@@ -212,7 +299,7 @@ const SensorsPrefsWidget = new GObject.Class({
                 found = true;
             }
             else {
-                label = this._sensorSelector.get_model().get_string(++position);
+                label = comboRow.get_model().get_string(++position);
             }
         }
 
@@ -222,31 +309,5 @@ const SensorsPrefsWidget = new GObject.Class({
         }
 
         return position;
-    },
-
-    _onUpdateTimeChanged: function (update_time) {
-        this._settings.set_int('update-time', update_time.get_value());
-    },
-
-    _onUnitChanged: function (unit, button) {
-        if (button.get_active()) {
-            this._settings.set_string('unit', unit);
-        }
-    },
-
-    _onSelectorChanged: function (selector) {
-        let position = selector.get_selected();
-        let label = selector.get_model().get_string(position);
-        this._settings.set_string('main-sensor', label);
     }
-
-});
-
-function buildPrefsWidget() {
-    let widget = new SensorsPrefsWidget();
-    if (shellVersion < 40) {
-        //Shell 3.38 or lower
-        widget.show_all();
-    }
-    return widget;
 }

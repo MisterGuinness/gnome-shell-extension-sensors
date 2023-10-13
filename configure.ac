@@ -1,6 +1,6 @@
 AC_PREREQ(2.63)
 
-AC_INIT([gnome-shell-extension-sensors],[2.0],[https://github.com/MisterGuinness/gnome-shell-extension-sensors/issues])
+AC_INIT([gnome-shell-extension-sensors],[3.0],[https://github.com/MisterGuinness/gnome-shell-extension-sensors/issues])
 AC_SUBST(uuid, [Sensors@MisterGuinness])
 
 AC_CONFIG_MACRO_DIR([m4])
