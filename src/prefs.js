@@ -17,14 +17,8 @@ const shellVersion = Number.parseInt(major);
 export default class SensorsPreferences
     extends ExtensionPreferences
 {
-    constructor(metadata) {
-        super(metadata);
-
-        this.initTranslations();
-    }
-
     fillPreferencesWindow(window) {
-        const oldLocale = Utilities.overrideLocale();
+        const oldLocale = Utilities.overrideLocale(this.uuid);
 
         // increase the window height slightly to accommodate the new group
         // titles, and moving the final checkbox onto a separate line

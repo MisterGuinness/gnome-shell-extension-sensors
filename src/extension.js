@@ -88,13 +88,6 @@ const SensorsMenuButton = GObject.registerClass({
 export default class SensorsExtension
     extends Extension
 {
-    constructor(metadata) {
-        super(metadata);
-
-        // TODO: check if this is required, presence of schema domain should suffice
-        this.initTranslations();
-    }
-
     enable() {
         // create icons for menu
         this._iconTemp = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
@@ -193,7 +186,7 @@ export default class SensorsExtension
         let fanInfo = Array();
         let voltageInfo = Array();
 
-        const oldLocale = Utilities.overrideLocale();
+        const oldLocale = Utilities.overrideLocale(this.uuid);
 
         tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
         if (display_fan_rpm){
@@ -280,7 +273,7 @@ export default class SensorsExtension
             for (const voltage of voltageInfo){
                 sensorsList.push(new SensorsItem(
                     voltage['label'],
-                    _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
+                    "%s%.2f%s".format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
                     this._iconVolt
                 ));
             }
