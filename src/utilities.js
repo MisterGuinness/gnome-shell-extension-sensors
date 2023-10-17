@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 
+import Gettext from 'gettext';
+
 const ByteArray = imports.byteArray;
 
 const UDisksDriveProxy = Gio.DBusProxy.makeProxyWrapper(
@@ -357,8 +359,8 @@ export var UDisks = {
     }
 };
 
-export function overrideLocale() {
-    const path = GLib.build_filenamev([GLib.get_user_config_dir(), "temperature@xtranophilist", "override_locale"]);
+export function overrideLocale(uuid) {
+    const path = GLib.build_filenamev([GLib.get_user_config_dir(), uuid, "override_locale"]);
     const file = Gio.File.new_for_path(path);
 
     let newLocale = null;
