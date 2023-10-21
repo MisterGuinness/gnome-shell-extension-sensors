@@ -4,8 +4,6 @@ import Gio from 'gi://Gio';
 
 import Gettext from 'gettext';
 
-const ByteArray = imports.byteArray;
-
 const UDisksDriveProxy = Gio.DBusProxy.makeProxyWrapper(
 '<node>\
     <interface name="org.freedesktop.UDisks2.Drive">\
@@ -42,10 +40,11 @@ export function detectHDDTemp() {
 
     if(systemctl) {
         let [result, activeState] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p ActiveState");
-        if(result && ByteArray.toString(activeState).trim() == "ActiveState=active") {
+        const decoder = new TextDecoder();
+        if(result && decoder.decode(activeState).trim() == "ActiveState=active") {
             let [result, output] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p MainPID");
             if (result) {
-                output=ByteArray.toString(output).trim();
+                output=decoder.decode(output).trim();
                 if(output.length && output.split("=").length == 2) {
                     pid = Number(output.split("=")[1].trim());
                 }
@@ -57,7 +56,8 @@ export function detectHDDTemp() {
     if(!pid && pidof) {
         let [result, output] = GLib.spawn_command_line_sync("pidof hddtemp");
         if (result) {
-            output=ByteArray.toString(output).trim();
+            const decoder = new TextDecoder();
+            output=decoder.decode(output).trim();
             if(output.length) {
                 pid = Number(output.trim());
             }
@@ -249,7 +249,8 @@ export var Future = GObject.registerClass({
                 stream.set_buffer_size(2 * stream.get_buffer_size());
                 this._readStderr();
             } else {
-                let text = ByteArray.toString(stream.peek_buffer());
+                const decoder = new TextDecoder();
+                let text = decoder.decode(stream.peek_buffer());
                 this._hasError = (text && text.length > 0);
                 if (this._hasError) {
                     logToJournal(text);
@@ -268,7 +269,8 @@ export var Future = GObject.registerClass({
                 stream.set_buffer_size(2 * stream.get_buffer_size());
                 this._readStdout();
             } else {
-                this._stdoutString = ByteArray.toString(stream.peek_buffer());
+                const decoder = new TextDecoder();
+                this._stdoutString = decoder.decode(stream.peek_buffer());
                 if ( --this._taskPendingCount == 0 ) {
                     this._callback(this._stdoutString, this._hasError);
                 }
@@ -366,7 +368,8 @@ export function overrideLocale(uuid) {
     let newLocale = null;
     try {
         const [success, contents] = file.load_contents(null);
-        newLocale = ByteArray.toString(contents).substr(0,10);
+        const decoder = new TextDecoder();
+        newLocale = decoder.decode(contents).substr(0,10);
     } catch (e) {
         if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND)) {
             // ignore

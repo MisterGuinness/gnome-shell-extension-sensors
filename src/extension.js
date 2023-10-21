@@ -14,8 +14,6 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 
 import * as Utilities from './utilities.js';
 
-const ByteArray = imports.byteArray;
-
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
     }, class SensorsItem

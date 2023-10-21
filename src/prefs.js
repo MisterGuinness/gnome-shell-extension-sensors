@@ -3,8 +3,6 @@ import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
-const ByteArray = imports.byteArray;
-
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
@@ -243,7 +241,8 @@ export default class SensorsPreferences
             let [result, sensors_output] = GLib.spawn_command_line_sync(sensors_cmd.join(' '));
             if(result)
             {
-                let output = ByteArray.toString(sensors_output);
+                const decoder = new TextDecoder();
+                let output = decoder.decode(sensors_output);
                 let tempInfo = Utilities.parseSensorsOutput(output,Utilities.parseSensorsTemperatureLine);
                 this._appendMultipleItems(tempInfo);
 
@@ -264,8 +263,9 @@ export default class SensorsPreferences
         if(hddtemp_cmd){
             let [result, hddtemp_output] = GLib.spawn_command_line_sync(hddtemp_cmd.join(' '))
             if(result){
+                const decoder = new TextDecoder();
                 let hddTempInfo = Utilities.parseHddTempOutput(
-                    ByteArray.toString(hddtemp_output),
+                    decoder.decode(hddtemp_output),
                     !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|',
                     _("Drive %s")	
 		);
