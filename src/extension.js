@@ -1,7 +1,6 @@
 import GLib from 'gi://GLib'; // for timeout
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Adw from 'gi://Adw';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -13,6 +12,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Utilities from './utilities.js';
+import * as SubProc from './subproc.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -94,9 +94,6 @@ export default class SensorsExtension
 
         this._settings = this.getSettings();
 
-        this._sensorsOutput = '';
-        this._hddtempOutput = '';
-
         this.sensorsArgv = Utilities.detectSensors();
         this.hddtempArgv = null;
 
@@ -107,6 +104,9 @@ export default class SensorsExtension
 
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
 
+        this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
+        Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
+
         // don't postpone the first call by update-time.
         this._querySensors();
 
@@ -115,9 +115,6 @@ export default class SensorsExtension
             // NOTE: return continue to fire the timer again
             return GLib.SOURCE_CONTINUE;
         });
-
-        this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
-        Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
     }
 
     disable() {
@@ -139,17 +136,18 @@ export default class SensorsExtension
         this.hddtempArgv = null;
     }
 
-    _querySensors() {
-        // these are asynchronous calls, so the display is updated twice, ugly
-        // first with sensors output, then again with both sensors and hddtemp output
+    async _querySensors() {
+        let hasSensorsError = false;
+        let hasHDDTempError = false;
+        let sensorsOutput;
+        let HDDTempOutput;
+
         if (this.sensorsArgv){
-            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout, hasError) => {
-                this._sensorsOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
-                this._sensorsFuture = undefined;
-            });
+            [ sensorsOutput, hasSensorsError ] = await SubProc.runCommandAsync(this.sensorsArgv);
         }
 
+        // NOTE: the user can decide to display HDD Temp output, or not, while
+        // the extension is running (via settings)
         if (this._settings.get_boolean('display-hdd-temp'))
         {
             // if the command for hddtemp has not been previously identified
@@ -166,12 +164,10 @@ export default class SensorsExtension
         }
 
         if (this.hddtempArgv){
-            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, (stdout, hasError) => {
-                this._hddtempOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
-                this._hddtempFuture = undefined;
-            });
+            [ HDDTempOutput, hasHDDTempError ] = await SubProc.runCommandAsync(this.hddtempArgv);
         }
+
+        this._updateDisplay(sensorsOutput, HDDTempOutput, hasSensorsError || hasHDDTempError);
 
         return true;
     }
