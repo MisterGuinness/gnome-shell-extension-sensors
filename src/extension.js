@@ -24,9 +24,9 @@ const SensorsItem = GObject.registerClass({
         this._label = label;
         this._value = value;
 
-        this.add(new St.Icon({gicon: icon, style_class: 'popup-menu-icon'}));
-        this.add(new St.Label({text: label}));
-        this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
+        this.add_child(new St.Icon({gicon: icon, style_class: 'popup-menu-icon'}));
+        this.add_child(new St.Label({text: label}));
+        this.add_child(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
     }
 
     getLabel() {
@@ -67,7 +67,7 @@ const SensorsMenuButton = GObject.registerClass({
         super._init(null, 'sensorMenu');
 
         this._statusLabel = new St.Label({ text: name, y_expand: true, y_align: Clutter.ActorAlign.CENTER });
-        this.add_actor(this._statusLabel);
+        this.add_child(this._statusLabel);
     }
 
     setLabel( label ) {
@@ -108,10 +108,10 @@ export default class SensorsExtension
         Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
 
         // don't postpone the first call by update-time.
-        this._querySensors();
+        this._querySensors().catch( e => { console.warn(e); });
 
         this._timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this._settings.get_int('update-time'), () => {
-            this._querySensors();
+            this._querySensors().catch( e => { console.warn(e); });
             // NOTE: return continue to fire the timer again
             return GLib.SOURCE_CONTINUE;
         });
