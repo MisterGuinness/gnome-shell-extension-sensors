@@ -26,7 +26,9 @@ of the extension will not run on Gnome Shell after v44.
 
 |Extension Version|Fedora|Gnome Shell|Note|
 |---|---|---|---|
-|3.0 (current)|39|45|
+|3.1 (current)|40|46|
+| |39|45|
+|3.0|39|45|
 |2.0|38|44|Not supported on Fedora >=39 or Gnome Shell >=45|
 |2.0|37|43|
 |2.0|36|42|
