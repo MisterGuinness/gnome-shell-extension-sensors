@@ -1,7 +1,6 @@
 import GLib from 'gi://GLib'; // for timeout
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Adw from 'gi://Adw';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -13,8 +12,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Utilities from './utilities.js';
-
-const ByteArray = imports.byteArray;
+import * as SubProc from './subproc.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -26,9 +24,9 @@ const SensorsItem = GObject.registerClass({
         this._label = label;
         this._value = value;
 
-        this.add(new St.Icon({gicon: icon, style_class: 'popup-menu-icon'}));
-        this.add(new St.Label({text: label}));
-        this.add(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
+        this.add_child(new St.Icon({gicon: icon, style_class: 'popup-menu-icon'}));
+        this.add_child(new St.Label({text: label}));
+        this.add_child(new St.Label({text: value, x_expand: true, x_align: Clutter.ActorAlign.END}));
     }
 
     getLabel() {
@@ -69,7 +67,7 @@ const SensorsMenuButton = GObject.registerClass({
         super._init(null, 'sensorMenu');
 
         this._statusLabel = new St.Label({ text: name, y_expand: true, y_align: Clutter.ActorAlign.CENTER });
-        this.add_actor(this._statusLabel);
+        this.add_child(this._statusLabel);
     }
 
     setLabel( label ) {
@@ -88,13 +86,6 @@ const SensorsMenuButton = GObject.registerClass({
 export default class SensorsExtension
     extends Extension
 {
-    constructor(metadata) {
-        super(metadata);
-
-        // TODO: check if this is required, presence of schema domain should suffice
-        this.initTranslations();
-    }
-
     enable() {
         // create icons for menu
         this._iconTemp = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
@@ -102,9 +93,6 @@ export default class SensorsExtension
         this._iconVolt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
 
         this._settings = this.getSettings();
-
-        this._sensorsOutput = '';
-        this._hddtempOutput = '';
 
         this.sensorsArgv = Utilities.detectSensors();
         this.hddtempArgv = null;
@@ -116,17 +104,17 @@ export default class SensorsExtension
 
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
 
+        this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
+        Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
+
         // don't postpone the first call by update-time.
-        this._querySensors();
+        this._querySensors().catch( e => { console.warn(e); });
 
         this._timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this._settings.get_int('update-time'), () => {
-            this._querySensors();
+            this._querySensors().catch( e => { console.warn(e); });
             // NOTE: return continue to fire the timer again
             return GLib.SOURCE_CONTINUE;
         });
-
-        this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
-        Main.panel.addToStatusArea('sensorsMenu', this._sensorsMenu, 1, 'right');
     }
 
     disable() {
@@ -148,17 +136,18 @@ export default class SensorsExtension
         this.hddtempArgv = null;
     }
 
-    _querySensors() {
-        // these are asynchronous calls, so the display is updated twice, ugly
-        // first with sensors output, then again with both sensors and hddtemp output
+    async _querySensors() {
+        let hasSensorsError = false;
+        let hasHDDTempError = false;
+        let sensorsOutput;
+        let HDDTempOutput;
+
         if (this.sensorsArgv){
-            this._sensorsFuture = new Utilities.Future(this.sensorsArgv, (stdout, hasError) => {
-                this._sensorsOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
-                this._sensorsFuture = undefined;
-            });
+            [ sensorsOutput, hasSensorsError ] = await SubProc.runCommandAsync(this.sensorsArgv);
         }
 
+        // NOTE: the user can decide to display HDD Temp output, or not, while
+        // the extension is running (via settings)
         if (this._settings.get_boolean('display-hdd-temp'))
         {
             // if the command for hddtemp has not been previously identified
@@ -175,12 +164,10 @@ export default class SensorsExtension
         }
 
         if (this.hddtempArgv){
-            this._hddtempFuture = new Utilities.Future(this.hddtempArgv, (stdout, hasError) => {
-                this._hddtempOutput = stdout;
-                this._updateDisplay(this._sensorsOutput, this._hddtempOutput, hasError);
-                this._hddtempFuture = undefined;
-            });
+            [ HDDTempOutput, hasHDDTempError ] = await SubProc.runCommandAsync(this.hddtempArgv);
         }
+
+        this._updateDisplay(sensorsOutput, HDDTempOutput, hasSensorsError || hasHDDTempError);
 
         return true;
     }
@@ -193,7 +180,7 @@ export default class SensorsExtension
         let fanInfo = Array();
         let voltageInfo = Array();
 
-        const oldLocale = Utilities.overrideLocale();
+        const oldLocale = Utilities.overrideLocale(this.uuid);
 
         tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
         if (display_fan_rpm){
@@ -280,7 +267,7 @@ export default class SensorsExtension
             for (const voltage of voltageInfo){
                 sensorsList.push(new SensorsItem(
                     voltage['label'],
-                    _("%s%.2f%s").format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
+                    "%s%.2f%s".format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
                     this._iconVolt
                 ));
             }

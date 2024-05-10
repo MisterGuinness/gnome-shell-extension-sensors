@@ -1,15 +1,13 @@
-import GLib from 'gi://GLib';   // only for spawn async
 import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
-
-const ByteArray = imports.byteArray;
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 
 import * as Utilities from './utilities.js';
+import * as SubProc from './subproc.js';
 
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -17,14 +15,8 @@ const shellVersion = Number.parseInt(major);
 export default class SensorsPreferences
     extends ExtensionPreferences
 {
-    constructor(metadata) {
-        super(metadata);
-
-        this.initTranslations();
-    }
-
-    fillPreferencesWindow(window) {
-        const oldLocale = Utilities.overrideLocale();
+    async fillPreferencesWindow(window) {
+        const oldLocale = Utilities.overrideLocale(this.uuid);
 
         // increase the window height slightly to accommodate the new group
         // titles, and moving the final checkbox onto a separate line
@@ -114,11 +106,11 @@ export default class SensorsPreferences
         this._display_hdd_temp = this._settings.get_boolean('display-hdd-temp');
 
         //Fill the list
-        this._getSensorsLabels();
+        await this._getSensorsLabels();
         this._getUdisksLabels();
 
         if(this._display_hdd_temp) {
-            this._getHddTempLabels();
+            await this._getHddTempLabels();
         }
 
         group.add( this._bindComboRow(
@@ -243,37 +235,36 @@ export default class SensorsPreferences
         return row;
     }
 
-    _getSensorsLabels() {
-        let sensors_cmd = Utilities.detectSensors();
+    async _getSensorsLabels() {
+        const sensors_cmd = Utilities.detectSensors();
         if(sensors_cmd) {
-            let [result, sensors_output] = GLib.spawn_command_line_sync(sensors_cmd.join(' '));
-            if(result)
+            const [sensors_output, hasError] = await SubProc.runCommandAsync(sensors_cmd);
+            if(sensors_output)
             {
-                let output = ByteArray.toString(sensors_output);
-                let tempInfo = Utilities.parseSensorsOutput(output,Utilities.parseSensorsTemperatureLine);
+                const tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
                 this._appendMultipleItems(tempInfo);
 
                 if (this._display_fan_rpm){
-                    let fanInfo = Utilities.parseSensorsOutput(output,Utilities.parseFanRPMLine);
+                    const fanInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseFanRPMLine);
                     this._appendMultipleItems(fanInfo);
                 }
                 if (this._display_voltage){
-                    let voltageInfo = Utilities.parseSensorsOutput(output,Utilities.parseVoltageLine);
+                    const voltageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseVoltageLine);
                     this._appendMultipleItems(voltageInfo);
                 }
             }
         }
     }
 
-    _getHddTempLabels() {
-        let hddtemp_cmd = Utilities.detectHDDTemp();
+    async _getHddTempLabels() {
+        const hddtemp_cmd = Utilities.detectHDDTemp();
         if(hddtemp_cmd){
-            let [result, hddtemp_output] = GLib.spawn_command_line_sync(hddtemp_cmd.join(' '))
-            if(result){
-                let hddTempInfo = Utilities.parseHddTempOutput(
-                    ByteArray.toString(hddtemp_output),
+            const [hddtemp_output, hasError] = await SubProc.runCommandAsync(hddtemp_cmd);
+            if(hddtemp_output){
+                const hddTempInfo = Utilities.parseHddTempOutput(
+                    hddtemp_output,
                     !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|',
-                    _("Drive %s")	
+                    _("Drive %s")
 		);
                 this._appendMultipleItems(hddTempInfo);
             }
