@@ -16,7 +16,7 @@ while read language; do
 
     sed -e "s/^\"Project-Id-Version:.*/\"Project-Id-Version: $package $version\\\n\"/" \
         -e "s|^\"Report-Msgid-Bugs-To:.*|\"Report-Msgid-Bugs-To: $bugs \\\n\"|" \
-        -e "s/# Copyright (C) ..../# Copyright (C) $current_year/" \
+        -e "s/# Copyright (C) ..../# Copyright (C) 2021-$current_year/" \
         $language.po | \
     msgmerge \
         --no-wrap \
