@@ -91,7 +91,7 @@ export default class SensorsExtension
         this._iconTemp = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
         this._iconFan = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-fan-symbolic.svg');
         this._iconVolt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
-        this._iconWatt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
+        this._iconWatt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-wattage-symbolic.svg');
 
         this._settings = this.getSettings();
 
