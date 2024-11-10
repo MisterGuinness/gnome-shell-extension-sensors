@@ -14,7 +14,8 @@ CLEANFILES = metadata.json
 dist_icon_DATA = \
 	sensors-fan-symbolic.svg \
 	sensors-temperature-symbolic.svg \
-	sensors-voltage-symbolic.svg
+	sensors-voltage-symbolic.svg \
+	sensors-wattage-symbolic.svg
 
 gsettings_SCHEMAS = org.gnome.shell.extensions.sensors.gschema.xml
 

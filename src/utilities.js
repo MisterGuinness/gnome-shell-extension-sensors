@@ -183,6 +183,31 @@ export function parseVoltageLine(label, info) {
     return sensor;
 }
 
+export function parseWattageLine(label, info) {
+    let sensor = undefined;
+    if(label != undefined && info != undefined) {
+        let fields = info.trim().split(' ');
+        // wattage info starts with [value][space][unit],
+        // so should yield more than one field
+        if (fields.length > 1 ) {
+            let value = fields[0];
+            let unit = fields[1];
+            // only check further if the unit is not empty (excluding temps)
+            if (unit.length > 0) {
+                // does the unit look like a wattage (ends with W)?
+                if (unit.lastIndexOf("W") == unit.length - "W".length) {
+                    sensor = new Array();
+                    let r;
+                    sensor['label'] = label.trim();
+                    sensor['watt'] = parseFloat(value);
+                    sensor['unit'] = unit;
+                }
+            }
+        }
+    }
+    return sensor;
+}
+
 export function parseHddTempOutput(txt, sep, prefix) {
     let hddtemp_output = [];
     if (txt.indexOf((sep+sep), txt.length - (sep+sep).length) >= 0)
