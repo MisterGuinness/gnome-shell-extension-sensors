@@ -8,7 +8,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-shell-extension-sensors 3.1\n"
+"Project-Id-Version: gnome-shell-extension-sensors 3.2\n"
 "Report-Msgid-Bugs-To: https://github.com/MisterGuinness/gnome-shell-extension-sensors/issues\n"
 "POT-Creation-Date: 2013-05-25 18:09+0200\n"
 "PO-Revision-Date: 2021-09-07 16:08+0800\n"
@@ -20,48 +20,48 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.5.4\n"
 
-#: ../src/extension.js:199 ../src/prefs.js:267
+#: ../src/extension.js:207 ../src/prefs.js:267
 #, javascript-format
 msgid "Drive %s"
 msgstr "Disque %s"
 
-#: ../src/extension.js:240 ../src/prefs.js:100
+#: ../src/extension.js:249 ../src/prefs.js:100
 msgid "Average"
 msgstr "Moyenne"
 
-#: ../src/extension.js:246 ../src/prefs.js:101
+#: ../src/extension.js:255 ../src/prefs.js:101
 msgid "Maximum"
 msgstr "Maximum"
 
-#: ../src/extension.js:258
+#: ../src/extension.js:268
 #, javascript-format
 msgid "%drpm"
 msgstr "%d tr/min"
 
-#: ../src/extension.js:305
+#: ../src/extension.js:327
 msgid "Sensors Settings"
 msgstr "Paramètres des capteurs"
 
 #. TRANSLATORS: the placeholder is locale specific time that sensor
 #. values were last displayed in the menu
-#: ../src/extension.js:316
+#: ../src/extension.js:338
 #, javascript-format
 msgid "Last Updated %s"
 msgstr ""
 
-#: ../src/extension.js:320
+#: ../src/extension.js:342
 msgid "Error"
 msgstr "Erreur"
 
-#: ../src/extension.js:324
+#: ../src/extension.js:346
 msgid "Please run sensors-detect as root."
 msgstr "Veuillez exécuter sensors-detect en tant que root."
 
-#: ../src/extension.js:325
+#: ../src/extension.js:347
 msgid "Please install lm_sensors."
 msgstr "Veuillez installer lm_sensors."
 
-#: ../src/extension.js:325
+#: ../src/extension.js:347
 msgid "If this doesn't help, click here to report with your sensors output!"
 msgstr "Si cela n’aide pas, cliquez ici pour envoyer un rapport avec la sortie de vos capteurs !"
 

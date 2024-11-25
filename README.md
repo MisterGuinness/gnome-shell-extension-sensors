@@ -1,8 +1,8 @@
 gnome-shell-extension-sensors
 =============================
 *gnome-shell-extension-sensors* (previously known as gnome-shell-extension-cpu-temperature)
-is an extension for displaying CPU temperature, hard disk temperature, voltage
-and CPU fan RPM in GNOME Shell.
+is an extension for displaying CPU temperature, hard disk temperature, voltage, 
+wattage, and fan RPM in GNOME Shell.
 
 The extension uses [sensors] from lm_sensors package (lm-sensors for Debian
 systems) to read temperature for different CPU cores and adapters, voltage data
@@ -26,7 +26,10 @@ of the extension will not run on Gnome Shell after v44.
 
 |Extension Version|Fedora|Gnome Shell|Note|
 |---|---|---|---|
-|3.1 (current)|40|46|
+|3.2 (current)|41|47|
+| |40|46|
+| |39|45|
+|3.1|40|46|
 | |39|45|
 |3.0|39|45|
 |2.0|38|44|Not supported on Fedora >=39 or Gnome Shell >=45|

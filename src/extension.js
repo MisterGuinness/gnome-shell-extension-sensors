@@ -91,6 +91,7 @@ export default class SensorsExtension
         this._iconTemp = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-temperature-symbolic.svg');
         this._iconFan = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-fan-symbolic.svg');
         this._iconVolt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-voltage-symbolic.svg');
+        this._iconWatt = Gio.icon_new_for_string(this.path + '/icons/hicolor/scalable/status/sensors-wattage-symbolic.svg');
 
         this._settings = this.getSettings();
 
@@ -121,6 +122,7 @@ export default class SensorsExtension
         this._iconTemp = null;
         this._iconFan = null;
         this._iconVolt = null;
+        this._iconWatt = null;
 
         GLib.Source.remove(this._timeoutId);
 
@@ -175,10 +177,12 @@ export default class SensorsExtension
     _updateDisplay(sensors_output, hddtemp_output, hasError) {
         let display_fan_rpm = this._settings.get_boolean('display-fan-rpm');
         let display_voltage = this._settings.get_boolean('display-voltage');
+        let display_wattage = this._settings.get_boolean('display-voltage');
 
         let tempInfo = Array();
         let fanInfo = Array();
         let voltageInfo = Array();
+        let wattageInfo = Array();
 
         const oldLocale = Utilities.overrideLocale(this.uuid);
 
@@ -188,6 +192,10 @@ export default class SensorsExtension
         }
         if (display_voltage){
             voltageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseVoltageLine);
+        }
+
+        if (display_wattage){
+            wattageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseWattageLine);
         }
 
         if(this.hddtempArgv)
@@ -204,6 +212,7 @@ export default class SensorsExtension
         tempInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
         fanInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
         voltageInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
+        wattageInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
 
         this._sensorsMenu.removeAll();
         let section = new PopupMenu.PopupMenuSection("Temperature");
@@ -247,9 +256,10 @@ export default class SensorsExtension
                     this._formatTemp(max),
                     this._iconTemp
                 ));
+            }
 
-                if(fanInfo.length > 0 || voltageInfo.length > 0)
-                    sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
+            if (fanInfo.length > 0) {
+                sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
 
             for (const fan of fanInfo){
@@ -260,7 +270,7 @@ export default class SensorsExtension
                 ));
             }
 
-            if (fanInfo.length > 0 && voltageInfo.length > 0){
+            if (voltageInfo.length > 0){
                 sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
             }
 
@@ -269,6 +279,18 @@ export default class SensorsExtension
                     voltage['label'],
                     "%s%.2f%s".format(((voltage['volt'] >= 0) ? '+' : '-'), voltage['volt'], voltage['unit']),
                     this._iconVolt
+                ));
+            }
+
+            if (wattageInfo.length > 0){
+                sensorsList.push(new PopupMenu.PopupSeparatorMenuItem());
+            }
+
+            for (const wattage of wattageInfo){
+                sensorsList.push(new SensorsItem(
+                    wattage['label'],
+                    "%s%.2f%s".format(((wattage['watt'] >= 0) ? '+' : '-'), wattage['watt'], wattage['unit']),
+                    this._iconWatt
                 ));
             }
 
