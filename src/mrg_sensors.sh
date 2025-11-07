@@ -106,6 +106,7 @@ while read symlink; do
     [ "$type_suffix" == "fan:input" \
       -o "$type_suffix" == "in:input" \
       -o "$type_suffix" == "power:average" \
+      -o "$type_suffix" == "power:input" \
       -o "$type_suffix" == "temp:input" ] && supported=1 || supported=0
 
     if [ "$supported" -eq 1 ]; then
@@ -160,10 +161,6 @@ while read symlink; do
   # blank line between chips
   # note it adds an unnecessay one at the end
   echo
-
-  #ls -1 /sys/class/hwmon/$symlink/{fan,in,temp}*_input | sed -e 's/_input$//' )
-
-  #ls -la /sys/class/hwmon/$symlink/device
 done < <(ls -1 /sys/class/hwmon)
 
 exit 0
