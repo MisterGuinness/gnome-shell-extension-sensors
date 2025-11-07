@@ -12,5 +12,5 @@
     stroke-linecap="round"
     fill="none"
   />
-  <text x="9" y="16" fill="darkgrey">W</text>
+  <text x="9" y="16" fill="red">W</text>
 </svg>
