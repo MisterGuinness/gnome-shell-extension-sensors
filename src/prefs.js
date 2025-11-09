@@ -236,7 +236,7 @@ export default class SensorsPreferences
     }
 
     async _getSensorsLabels() {
-        const sensors_cmd = Utilities.detectSensors();
+        const sensors_cmd = Utilities.detectSensors(this.path);
         if(sensors_cmd) {
             const [sensors_output, hasError] = await SubProc.runCommandAsync(sensors_cmd);
             if(sensors_output)

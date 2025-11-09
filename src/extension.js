@@ -95,7 +95,7 @@ export default class SensorsExtension
 
         this._settings = this.getSettings();
 
-        this.sensorsArgv = Utilities.detectSensors();
+        this.sensorsArgv = Utilities.detectSensors(this.path);
         this.hddtempArgv = null;
 
         this.udisksProxies = [];
