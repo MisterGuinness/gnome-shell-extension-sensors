@@ -4,9 +4,8 @@ gnome-shell-extension-sensors
 is an extension for displaying CPU temperature, hard disk temperature, voltage, 
 wattage, and fan RPM in GNOME Shell.
 
-The extension uses [sensors] from lm_sensors package (lm-sensors for Debian
-systems) to read temperature for different CPU cores and adapters, voltage data
-and fan speed.
+By default this extension uses [sysfs] to read temperatures for different CPU
+cores and adapters, voltage data and fan speed.
 
 Optionally, this extension uses the [UDisks2] dbus interface or [hddtemp] as
 fallback to read hard drive temperature data.
@@ -26,6 +25,11 @@ of the extension will not run on Gnome Shell after v44.
 
 |Extension Version|Fedora|Gnome Shell|Note|
 |---|---|---|---|
+|3.4 (current)|43|49|
+| |42|48|
+| |41|47|
+| |40|46|
+| |39|45|
 |3.3 (current)|42|48|
 | |41|47|
 | |40|46|
@@ -54,7 +58,7 @@ Installation
 Installation by GNOME extensions
 -------------------------------
 
-This is the **very old method** for installation, as it doesn't require the build
+This is the **very old version** for installation, as it doesn't require the build
 dependencies for installation.
 You can install this extension by visiting the [GNOME extensions]
 page for this extension.
@@ -76,15 +80,18 @@ To install this extension you need to clone the source and build the extension.
 For gnome-shell 3.10 or newer please run the following commands:
 
     cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
+
     cd ~/gnome-shell-extension-sensors
 
 For gnome-shell 3.8 or older please run the following commands:
 
     cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
+
     cd ~/gnome-shell-extension-sensors
+
     git checkout gnome-3.8
 
-The build dependenciesare:
+The build dependencies are:
 
 * *gettext*,
 * *pkg-config*,
@@ -135,10 +142,11 @@ For Fedora 33 and earlier, install Gnome Tweaks (previously Gnome Tweak Tool)
 Open `Tweaks` -> `Extensions` -> `Sensors` -> On
 
 
-Installing lm-sensors and (optionally) hdd-temp
+Installing (optionally) lm-sensors and (optionally) hdd-temp
 -------------
-This extensions uses the output of `sensors`(1) command to obtain the
-temperature data and sensor labeling. 
+The extension uses [sensors] from lm_sensors package (lm-sensors for Debian
+systems) to read temperature for different CPU cores and adapters, voltage data
+and fan speed.
 
 Installing lm-sensors for Fedora, CentOS and other distros with dnf:
 
@@ -159,9 +167,25 @@ Installing `hdd-temp` is optional, and only required if you find lm-sensors does
 
 Configuration
 ---------------------
+A sensor chip can have a configuration file specifying sensors to ignore, and
+an alternative label for each sensor.
 
-This extensions uses the output of `sensors`(1) command to obtain the
-temperature data and sensor labeling. To relabel, hide or correct the
+Each chip gets its own directory in the sysfs /sys/devices tree. To find all
+sensor chips, it is easier to follow the device symlinks from
+/sys/class/hwmon/hwmon*.
+
+For example:
+$ cat /sys/class/hwmon/hwmon3/name
+k10temp
+
+Create a configuration file 'k10temp.conf' containing
+    chip "k10temp-pci-00c3"
+        label temp1 "CPU Temp"
+        ignore temp3  #unknown
+
+To use the deprecated lm-sensors, rename the mrg_sensors.sh script and install
+lm-sensors.  This extension will then use the output of `sensors`(1) command to
+obtain the temperature data and sensor labeling. To relabel, hide or correct the
 output consult the `sensors.conf`(5) manual.
 
 Authors : [authors]
@@ -173,4 +197,4 @@ Authors : [authors]
 [authors]: https://github.com/xtranophilist/gnome-shell-extension-sensors/graphs/contributors
 [screenshot]: Fedora33.png
 [RH#983409]: https://bugzilla.redhat.com/show_bug.cgi?id=983409
-
+[sysfs]: https://docs.kernel.org/hwmon/sysfs-interface.html
