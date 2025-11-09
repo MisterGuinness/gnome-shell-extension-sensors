@@ -18,8 +18,12 @@ const UDisksDriveAtaProxy = Gio.DBusProxy.makeProxyWrapper(
     </interface>\
 </node>');
 
-export function detectSensors() {
-    let path = GLib.find_program_in_path('sensors');
+export function detectSensors(extensionPath) {
+    let path = GLib.build_filenamev([extensionPath, "mrg_sensors.sh"]);
+    if (GLib.file_test(path, GLib.FileTest.EXISTS)) {
+        return [path];
+    }
+    path = GLib.find_program_in_path('sensors');
     return path ? [path] : undefined;
 }
 
