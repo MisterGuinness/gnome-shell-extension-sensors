@@ -13,6 +13,7 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
+import * as DBus from './dbus.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -99,7 +100,7 @@ export default class SensorsExtension
         this.hddtempArgv = null;
 
         this.udisksProxies = [];
-        Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
+        DBus.UDisks.get_drive_ata_proxies( (proxies) => {
             this.udisksProxies = proxies;
         });
 
@@ -207,7 +208,7 @@ export default class SensorsExtension
                     _("Drive %s")
             ));
 
-        tempInfo = tempInfo.concat(Utilities.UDisks.create_list_from_proxies(this.udisksProxies));
+        tempInfo = tempInfo.concat(DBus.UDisks.create_list_from_proxies(this.udisksProxies));
 
         tempInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
         fanInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
