@@ -8,6 +8,7 @@ import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.j
 
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
+import * as DBus from './dbus.js';
 
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -272,8 +273,8 @@ export default class SensorsPreferences
     }
 
     _getUdisksLabels() {
-        Utilities.UDisks.get_drive_ata_proxies((function(proxies) {
-            let list = Utilities.UDisks.create_list_from_proxies(proxies);
+        DBus.UDisks.get_drive_ata_proxies((function(proxies) {
+            let list = DBus.UDisks.create_list_from_proxies(proxies);
 
             this._appendMultipleItems(list);
         }).bind(this));
