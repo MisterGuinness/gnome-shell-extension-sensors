@@ -108,9 +108,9 @@ export default class SensorsPreferences
 
         //Fill the list
         await this._getSensorsLabels();
-        this._getUdisksLabels();
 
         if(this._display_hdd_temp) {
+            await this._getUdisksLabels();
             await this._getHddTempLabels();
         }
 
@@ -272,12 +272,9 @@ export default class SensorsPreferences
         }
     }
 
-    _getUdisksLabels() {
-        DBus.UDisks.get_drive_ata_proxies((function(proxies) {
-            let list = DBus.UDisks.create_list_from_proxies(proxies);
-
-            this._appendMultipleItems(list);
-        }).bind(this));
+    async _getUdisksLabels() {
+        await DBus.makeDriveProxies();
+        this._appendMultipleItems(DBus.getDriveTemps(_("Drive %s")));
     }
 
     _findActiveSensor(comboRow, activeSensor) {
