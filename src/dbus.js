@@ -1,90 +1,155 @@
 import Gio from 'gi://Gio';
 
-// this is the UDisks related code extracted from utilities.js to act as the
-// record of the original code which is about to be re-written
+var proxies = new Array();
 
-const UDisksDriveProxy = Gio.DBusProxy.makeProxyWrapper(
-'<node>\
-    <interface name="org.freedesktop.UDisks2.Drive">\
-        <property type="s" name="Model" access="read"/>\
-    </interface>\
-</node>');
+export function clearDriveProxies() {
+    proxies = new Array();
+}
 
-const UDisksDriveAtaProxy = Gio.DBusProxy.makeProxyWrapper(
-'<node>\
-    <interface name="org.freedesktop.UDisks2.Drive.Ata">\
-        <property type="d" name="SmartTemperature" access="read"/>\
-    </interface>\
-</node>');
+export function haveDriveProxies() {
+    return proxies.length > 0
+}
 
-// Poor man's async.js
-const Async = {
-    // mapping will be done in parallel
-    map: function(arr, mapClb /* function(in, successClb)) */, resClb /* function(result) */) {
-        let counter = arr.length;
-        let result = [];
-        for (let i = 0; i < arr.length; ++i) {
-            mapClb(arr[i], (function(i, newVal) {
-                result[i] = newVal;
-                if (--counter == 0) resClb(result);
-            }).bind(null, i)); // i needs to be bound since it will be changed during the next iteration
+export async function makeDriveProxies() {
+    const systemConnection = Gio.DBus.system;
+    const udisksName = "org.freedesktop.UDisks2";
+    const udisksPath = "/org/freedesktop/UDisks2";
+
+    clearDriveProxies();
+
+    // create a new manager client that can list out all the objects
+    // wrap the client in a promise so that the async result can be awaited
+    // use the client's callback to finish the result and resolve the promise
+    // refer https://docs.gtk.org/gio/type_func.DBusObjectManagerClient.new.html
+
+    let managerClient = null;
+
+    try {
+        managerClient = await new Promise((resolve, reject) => {
+            Gio.DBusObjectManagerClient.new(
+                systemConnection,
+                Gio.G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
+                udisksName,
+                udisksPath,
+                null, // always construct GDBusProxy proxies
+                null, // not cancellable
+                // async callback
+                // refer https://docs.gtk.org/gio/callback.AsyncReadyCallback.html
+                (source_object, res) => {
+                    if (res === null)
+                        reject("Gio.DBusObjectManagerClient.new null result");
+                    else
+                        // https://docs.gtk.org/gio/ctor.DBusObjectManagerClient.new_finish.html
+                        resolve(Gio.DBusObjectManagerClient.new_finish(res));
+                }
+            );
+        });
+    } catch(e) {
+        console.error(e);
+    }
+
+    // get an array of objects for the requested path (ie all UDisks objects)
+    // refer https://docs.gtk.org/gio/method.DBusObjectManager.get_objects.html
+    let objects = null;
+
+    if (managerClient) {
+        objects = managerClient.get_objects();
+    }
+
+    const interfaceDriveXML = `
+    <node>
+        <interface name="org.freedesktop.UDisks2.Drive">
+            <property name="Model" type="s" access="read"/>
+        </interface>
+    </node>`;
+
+    const interfaceDriveAtaXML = `
+    <node>
+        <interface name="org.freedesktop.UDisks2.Drive.Ata">
+            <property name="SmartTemperature" type="d" access="read"/>
+        </interface>
+    </node>`;
+
+    const proxyDriveClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveXML);
+    const proxyDriveAtaClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveAtaXML);
+
+    // the 'for (x of iterable-array)' will handle await on promises
+    for (const object of objects) {
+
+        // check that this object has both the interfaces we want
+        if ( object.get_interface("org.freedesktop.UDisks2.Drive") != null
+            && object.get_interface("org.freedesktop.UDisks2.Drive.Ata") != null ) {
+
+            const path = object.get_object_path();
+
+            // create proxies for each interface for this object (ie drive)
+            // the first is to access the model, and
+            // the second is to access the temperature
+            // refer https://gjs.guide/guides/gio/dbus.html#high-level-proxies
+            try {
+                const driveProxy = await new Promise((resolve, reject) => {
+                    proxyDriveClass(
+                        systemConnection,
+                        udisksName,
+                        path,
+                        (proxy, error) => {
+                            if (error === null)
+                                resolve(proxy);
+                            else
+                                reject(error);
+                        },
+                        null, // not cancellable
+                        Gio.DBusProxyFlags.NONE
+                    );
+                });
+
+                const driveAtaProxy = await new Promise((resolve, reject) => {
+                    proxyDriveAtaClass(
+                        systemConnection,
+                        udisksName,
+                        path,
+                        (proxy, error) => {
+                            if (error === null)
+                                resolve(proxy);
+                            else
+                                reject(error);
+                        },
+                        null, // not cancellable
+                        Gio.DBusProxyFlags.NONE
+                    );
+                });
+
+                // package as properties of a new object and append to the array of proxies
+                proxies.push({ drive: driveProxy, ata: driveAtaProxy });
+
+            } catch(e) {
+                console.error(e);
+            }
         }
     }
 }
 
-// routines for handling of udisks2
-export var UDisks = {
-    // creates a list of sensor objects from the list of proxies given
-    create_list_from_proxies: function(proxies) {
-        return proxies.filter(function(proxy) {
-            // 0K means no data available
-            return proxy.ata.SmartTemperature > 0;
-        }).map(function(proxy) {
-            return {
-                label: proxy.drive.Model,
-                temp: proxy.ata.SmartTemperature - 272.15
-            };
-        });
-    },
-
-    // calls callback with [{ drive: UDisksDriveProxy, ata: UDisksDriveAtaProxy }, ... ] for every drive that implements both interfaces
-    get_drive_ata_proxies: function(callback) {
-        Gio.DBusObjectManagerClient.new(Gio.DBus.system, 0, "org.freedesktop.UDisks2", "/org/freedesktop/UDisks2", null, null, function(src, res) {
-            try {
-                let objMgr = Gio.DBusObjectManagerClient.new_finish(res); //might throw
-
-                let objPaths = objMgr.get_objects().filter(function(o) {
-                    return o.get_interface("org.freedesktop.UDisks2.Drive") != null
-                        && o.get_interface("org.freedesktop.UDisks2.Drive.Ata") != null;
-                }).map(function(o) { return o.get_object_path() });
-
-                // now create the proxy objects, log and ignore every failure
-                Async.map(objPaths, function(obj, callback) {
-                    // create the proxies object
-                    let driveProxy = new UDisksDriveProxy(Gio.DBus.system, "org.freedesktop.UDisks2", obj, function(res, error) {
-                        if (error) { //very unlikely - we even checked the interfaces before!
-                            debug("Could not create proxy on "+obj+":"+error);
-                            callback(null);
-                            return;
-                        }
-                        let ataProxy = new UDisksDriveAtaProxy(Gio.DBus.system, "org.freedesktop.UDisks2", obj, function(res, error) {
-                            if (error) {
-                                debug("Could not create proxy on "+obj+":"+error);
-                                callback(null);
-                                return;
-                            }
-
-                            callback({ drive: driveProxy, ata: ataProxy });
-                        });
-                    });
-                }, function(proxies) {
-                    // filter out failed attempts == null values
-                    callback(proxies.filter(function(a) { return a != null; }));
-                });
-            } catch (e) {
-                debug("Could not find UDisks objects: "+e);
-            }
-        });
-    }
-};
-
+// https://storaged.org/doc/udisks2-api/latest/gdbus-org.freedesktop.UDisks2.Drive.Ata.html#gdbus-property-org-freedesktop-UDisks2-Drive-Ata.SmartTemperature
+//
+// The temperature (in Kelvin) of the disk according to SMART data or 0 if unknown.
+//
+// https://cdn.standards.iteh.ai/samples/80702/17080fbc3edd438f98fb84b33a40e1da/ISO-1-2022.pdf
+//
+// The SI unit of temperature is the kelvin (K). The unit degree Celsius (°C)
+// is linked by a fixed shift of scale, according to Formula (B.1):
+//   t = T – T0
+// where T0 = 273,15 K
+// or equivalently to Formula (B.2):
+//   t/°C = T/K – 273,15
+//
+// Note: the original code for below had "...SmartTemperatue - 272.15"
+export function getDriveTemps(labelPrefix) {
+    // 0K means no data available
+    return proxies
+        .filter((proxy) => proxy.ata.SmartTemperature > 0)
+        .map((proxy) => ({
+                label: labelPrefix.format(proxy.drive.Model),
+                temp: proxy.ata.SmartTemperature - 273.15
+            })
+        )
+}
