@@ -8,6 +8,7 @@ import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.j
 
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
+import * as DBus from './dbus.js';
 
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -107,9 +108,9 @@ export default class SensorsPreferences
 
         //Fill the list
         await this._getSensorsLabels();
-        this._getUdisksLabels();
 
         if(this._display_hdd_temp) {
+            await this._getUdisksLabels();
             await this._getHddTempLabels();
         }
 
@@ -271,12 +272,9 @@ export default class SensorsPreferences
         }
     }
 
-    _getUdisksLabels() {
-        Utilities.UDisks.get_drive_ata_proxies((function(proxies) {
-            let list = Utilities.UDisks.create_list_from_proxies(proxies);
-
-            this._appendMultipleItems(list);
-        }).bind(this));
+    async _getUdisksLabels() {
+        await DBus.makeDriveProxies();
+        this._appendMultipleItems(DBus.getDriveTemps(_("Drive %s")));
     }
 
     _findActiveSensor(comboRow, activeSensor) {

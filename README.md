@@ -25,12 +25,18 @@ of the extension will not run on Gnome Shell after v44.
 
 |Extension Version|Fedora|Gnome Shell|Note|
 |---|---|---|---|
-|3.4 (current)|43|49|
+|3.5 (current)|44|50|
+| |43|49|
 | |42|48|
 | |41|47|
 | |40|46|
 | |39|45|
-|3.3 (current)|42|48|
+|3.4|43|49|
+| |42|48|
+| |41|47|
+| |40|46|
+| |39|45|
+|3.3|42|48|
 | |41|47|
 | |40|46|
 | |39|45|
@@ -175,10 +181,12 @@ sensor chips, it is easier to follow the device symlinks from
 /sys/class/hwmon/hwmon*.
 
 For example:
-$ cat /sys/class/hwmon/hwmon3/name
-k10temp
+
+    $ cat /sys/class/hwmon/hwmon3/name
+    k10temp
 
 Create a configuration file 'k10temp.conf' containing
+
     chip "k10temp-pci-00c3"
         label temp1 "CPU Temp"
         ignore temp3  #unknown
@@ -194,7 +202,7 @@ Authors : [authors]
 [UDisks2]: http://www.freedesktop.org/wiki/Software/udisks/
 [hddtemp]: https://savannah.nongnu.org/projects/hddtemp/
 [GNOME extensions]: https://extensions.gnome.org/extension/82/cpu-temperature-indicator/
-[authors]: https://github.com/xtranophilist/gnome-shell-extension-sensors/graphs/contributors
-[screenshot]: Fedora33.png
+[authors]: https://github.com/misterguinness/gnome-shell-extension-sensors/graphs/contributors
+[screenshot]: menu.png
 [RH#983409]: https://bugzilla.redhat.com/show_bug.cgi?id=983409
 [sysfs]: https://docs.kernel.org/hwmon/sysfs-interface.html

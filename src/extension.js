@@ -13,6 +13,7 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
+import * as DBus from './dbus.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -98,11 +99,6 @@ export default class SensorsExtension
         this.sensorsArgv = Utilities.detectSensors(this.path);
         this.hddtempArgv = null;
 
-        this.udisksProxies = [];
-        Utilities.UDisks.get_drive_ata_proxies( (proxies) => {
-            this.udisksProxies = proxies;
-        });
-
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
 
         this._sensorsMenu = new SensorsMenuButton( this.metadata.name );
@@ -152,6 +148,10 @@ export default class SensorsExtension
         // the extension is running (via settings)
         if (this._settings.get_boolean('display-hdd-temp'))
         {
+            if ( DBus.haveDriveProxies() === false ) {
+                await DBus.makeDriveProxies();
+            }
+
             // if the command for hddtemp has not been previously identified
             if ( this.hddtempArgv == null )
             {
@@ -160,6 +160,8 @@ export default class SensorsExtension
         }
         else
         {
+            DBus.clearDriveProxies();
+
             // clear the hddtemp command if not required to run according to
             // settings, turning on again will determine the command again
             this.hddtempArgv = null;
@@ -207,7 +209,11 @@ export default class SensorsExtension
                     _("Drive %s")
             ));
 
-        tempInfo = tempInfo.concat(Utilities.UDisks.create_list_from_proxies(this.udisksProxies));
+        if (this._settings.get_boolean('display-hdd-temp')) {
+            // provide the drive label from here so all translations are
+            // performed inside this module
+            tempInfo = tempInfo.concat(DBus.getDriveTemps(_("Drive %s")));
+        }
 
         tempInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
         fanInfo.sort(function(a,b) { return a['label'].localeCompare(b['label']) });
