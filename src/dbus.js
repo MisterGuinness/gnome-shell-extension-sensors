@@ -88,7 +88,7 @@ export async function makeDriveProxies() {
             // refer https://gjs.guide/guides/gio/dbus.html#high-level-proxies
             try {
                 const driveProxy = await new Promise((resolve, reject) => {
-                    proxyDriveClass(
+                    new proxyDriveClass(
                         systemConnection,
                         udisksName,
                         path,
@@ -104,7 +104,7 @@ export async function makeDriveProxies() {
                 });
 
                 const driveAtaProxy = await new Promise((resolve, reject) => {
-                    proxyDriveAtaClass(
+                    new proxyDriveAtaClass(
                         systemConnection,
                         udisksName,
                         path,
