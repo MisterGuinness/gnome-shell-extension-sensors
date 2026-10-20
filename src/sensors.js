@@ -1,0 +1,299 @@
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
+
+export function detectSensors(extensionPath) {
+    let path = GLib.build_filenamev([extensionPath, "mrg_sensors.sh"]);
+    if (GLib.file_test(path, GLib.FileTest.EXISTS)) {
+        return [path];
+    }
+    path = GLib.find_program_in_path('sensors');
+    return path ? [path] : undefined;
+}
+
+export function detectHDDTemp() {
+    let hddtempArgv = GLib.find_program_in_path('hddtemp');
+    if(hddtempArgv) {
+        // check if this user can run hddtemp directly.
+        if(!GLib.spawn_command_line_sync(hddtempArgv)[3])
+            return [hddtempArgv];
+    }
+
+    // doesn't seem to be the case... is it running as a daemon?
+	// Check first for systemd
+    let systemctl = GLib.find_program_in_path('systemctl');
+    let pidof = GLib.find_program_in_path('pidof');
+    let nc = GLib.find_program_in_path('nc');
+    let pid = undefined;
+
+    if(systemctl) {
+        let [result, activeState] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p ActiveState");
+        const decoder = new TextDecoder();
+        if(result && decoder.decode(activeState).trim() == "ActiveState=active") {
+            let [result, output] = GLib.spawn_command_line_sync(systemctl + " show hddtemp.service -p MainPID");
+            if (result) {
+                output=decoder.decode(output).trim();
+                if(output.length && output.split("=").length == 2) {
+                    pid = Number(output.split("=")[1].trim());
+                }
+            }
+        }
+    }
+
+    // systemd isn't used on this system, try sysvinit instead
+    if(!pid && pidof) {
+        let [result, output] = GLib.spawn_command_line_sync("pidof hddtemp");
+        if (result) {
+            const decoder = new TextDecoder();
+            output=decoder.decode(output).trim();
+            if(output.length) {
+                pid = Number(output.trim());
+            }
+        }
+    }
+
+    if(nc && pid)
+    {
+        // get daemon command line
+        let cmdline = GLib.file_get_contents('/proc/'+pid+'/cmdline');
+        // get port or assume default
+        let match = /(-p\W*|--port=)(\d{1,5})/.exec(cmdline)
+        let port = match ? parseInt(match[2]) : 7634;
+        // use net cat to get data
+        return [nc, 'localhost', port.toString()];
+    }
+
+    // not found
+    return undefined;
+}
+
+export function parseSensorsOutput(txt,parser) {
+    let lines = txt.split("\n");
+    let numLines = lines.length;
+    let label = undefined;
+    let values = undefined;
+    let sensors = [];
+
+    let i = 0;
+
+    // the first sensor line for a chip is preceded by two "heading" lines, so
+    // to have a sensor there must be at least 2 more lines after the current
+    while ( i + 2 < numLines ) {
+        // ignore chipset driver name and 'Adapter:' lines for now
+        i += 2;
+
+        // get every sensor of the chip
+        // note: each chip's sensors end with a blank line
+        while ( i < numLines && lines[i] ) {
+            // a colon separates the sensor label from its value(s)
+            [label, values] = lines[i].split(':');
+            i++;
+
+            // concatenate values from following lines for the same sensor
+            // note: continuation lines start with a space
+            while ( i < numLines && lines[i] && lines[i].indexOf(' ') == 0 ) {
+                values += lines[i];
+                i++;
+            }
+
+            let sensor = parser( label, values );
+            if ( sensor ) {
+                sensors.push( sensor );
+            }
+        }
+
+        // skip the blank line between chips
+        i++;
+    }
+
+    return sensors;
+}
+
+export function parseSensorsTemperatureLine(label, value) {
+    let sensor = undefined;
+    if(label != undefined && value != undefined) {
+        let curValue = value.trim().split('  ')[0];
+        // does the current value look like a temperature unit (ends with C)?
+        if(curValue.indexOf("C", curValue.length - "C".length) !== -1){
+            sensor = new Array();
+            let r;
+            sensor['label'] = label.trim();
+            sensor['temp'] = parseFloat(curValue.split(' ')[0]);
+            sensor['low']  = (r = /low=\+(\d{1,3}.\d)/.exec(value))  ? parseFloat(r[1]) : undefined;
+            sensor['high'] = (r = /high=\+(\d{1,3}.\d)/.exec(value)) ? parseFloat(r[1]) : undefined;
+            sensor['crit'] = (r = /crit=\+(\d{1,3}.\d)/.exec(value)) ? parseFloat(r[1]) : undefined;
+            sensor['hyst'] = (r = /hyst=\+(\d{1,3}.\d)/.exec(value)) ? parseFloat(r[1]) : undefined;
+        }
+    }
+    return sensor;
+}
+
+export function parseFanRPMLine(label, value) {
+    let sensor = undefined;
+    if(label != undefined && value != undefined) {
+        let curValue = value.trim().split('  ')[0];
+        // does the current value look like a fan rpm line?
+        if(curValue.indexOf("RPM", curValue.length - "RPM".length) !== -1){
+            sensor = new Array();
+            let r;
+            sensor['label'] = label.trim();
+            sensor['rpm'] = parseFloat(curValue.split(' ')[0]);
+            sensor['min'] = (r = /min=(\d{1,5})/.exec(value)) ? parseFloat(r[1]) : undefined;
+        }
+    }
+    return sensor;
+}
+
+export function parseVoltageLine(label, info) {
+    let sensor = undefined;
+    if(label != undefined && info != undefined) {
+        let fields = info.trim().split(' ');
+        // voltage info starts with [value][space][unit],
+        // so should yield more than one field
+        if (fields.length > 1 ) {
+            let value = fields[0];
+            let unit = fields[1];
+            // only check further if the unit is not empty (excluding temps)
+            if (unit.length > 0) {
+                // does the unit look like a voltage (ends with V)?
+                if (unit.lastIndexOf("V") == unit.length - "V".length) {
+                    sensor = new Array();
+                    let r;
+                    sensor['label'] = label.trim();
+                    sensor['volt'] = parseFloat(value);
+                    sensor['unit'] = unit;
+                    sensor['min'] = (r = /min=(\d{1,3}.\d)/.exec(info)) ? parseFloat(r[1]) : undefined;
+                    sensor['max'] = (r = /max=(\d{1,3}.\d)/.exec(info)) ? parseFloat(r[1]) : undefined;
+                }
+            }
+        }
+    }
+    return sensor;
+}
+
+export function parseWattageLine(label, info) {
+    let sensor = undefined;
+    if(label != undefined && info != undefined) {
+        let fields = info.trim().split(' ');
+        // wattage info starts with [value][space][unit],
+        // so should yield more than one field
+        if (fields.length > 1 ) {
+            let value = fields[0];
+            let unit = fields[1];
+            // only check further if the unit is not empty (excluding temps)
+            if (unit.length > 0) {
+                // does the unit look like a wattage (ends with W)?
+                if (unit.lastIndexOf("W") == unit.length - "W".length) {
+                    sensor = new Array();
+                    let r;
+                    sensor['label'] = label.trim();
+                    sensor['watt'] = parseFloat(value);
+                    sensor['unit'] = unit;
+                }
+            }
+        }
+    }
+    return sensor;
+}
+
+export function parseHddTempOutput(txt, sep, prefix) {
+    let hddtemp_output = [];
+    if (txt.indexOf((sep+sep), txt.length - (sep+sep).length) >= 0)
+    {
+        hddtemp_output = txt.split(sep+sep);
+    }
+	else
+    {
+        hddtemp_output = txt.split("\n");
+    }
+
+    hddtemp_output = hddtemp_output.filter(function(e){ return e; });
+
+    let sensors = new Array();
+    for (const line of hddtemp_output)
+    {
+        let sensor = new Array();
+        let fields = line.split(sep).filter(function(e){ return e; });
+        sensor['label'] = prefix.format(fields[0].split('/').pop());
+        sensor['temp'] = parseFloat(fields[2]);
+        //push only if the temp is a Number
+        if (!isNaN(sensor['temp']))
+            sensors.push(sensor);
+    }
+    return sensors;
+}
+
+export var Future = GObject.registerClass({
+    GTypeName: 'MrGFuture'
+    }, class Future
+    extends GObject.Object {
+
+    _init(argv, callback) {
+            this._callback = callback;
+            let [exit, pid, stdin, stdout, stderr] =
+                GLib.spawn_async_with_pipes(null, /* cwd */
+                                            argv, /* args */
+                                            null, /* env */
+                                            GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                                            null /* child_setup */);
+            this._stdout = new Gio.UnixInputStream({fd: stdout, close_fd: true});
+            this._dataStdout = new Gio.DataInputStream({base_stream: this._stdout});
+            new Gio.UnixOutputStream({fd: stdin, close_fd: true}).close(null);
+
+            this._stderr = new Gio.UnixInputStream({fd: stderr, close_fd: true})
+            this._dataStderr = new Gio.DataInputStream({base_stream: this._stderr});
+
+            this._childWatch = GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, (pid, status, requestObj) => {
+                GLib.source_remove(this._childWatch);
+            });
+
+            this._stdoutString = null;
+            this._hasError = false;
+
+            this._taskPendingCount = 2;
+
+            this._readStderr();
+            this._readStdout();
+    }
+
+    _readStderr() {
+        this._dataStderr.fill_async(-1, GLib.PRIORITY_DEFAULT, null, (stream, result) => {
+            if ( stream.fill_finish( result ) > stream.get_buffer_size() ) {
+                stream.set_buffer_size(2 * stream.get_buffer_size());
+                this._readStderr();
+            } else {
+                const decoder = new TextDecoder();
+                let text = decoder.decode(stream.peek_buffer());
+                this._hasError = (text && text.length > 0);
+                if (this._hasError) {
+                    logToJournal(text);
+                }
+                if ( --this._taskPendingCount == 0 ) {
+                    this._callback(this._stdoutString, this._hasError);
+                }
+                this._stderr.close(null);
+            }
+        });
+    }
+
+    _readStdout() {
+        this._dataStdout.fill_async(-1, GLib.PRIORITY_DEFAULT, null, (stream, result) => {
+            if ( stream.fill_finish(result) > stream.get_buffer_size() ) {
+                stream.set_buffer_size(2 * stream.get_buffer_size());
+                this._readStdout();
+            } else {
+                const decoder = new TextDecoder();
+                this._stdoutString = decoder.decode(stream.peek_buffer());
+                if ( --this._taskPendingCount == 0 ) {
+                    this._callback(this._stdoutString, this._hasError);
+                }
+                this._stdout.close(null);
+            }
+        });
+    }
+});
+
+function logToJournal(s)
+{
+    log( Me.metadata.name + ': ' + s );
+}

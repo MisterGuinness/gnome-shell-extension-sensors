@@ -6,10 +6,10 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 
-import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
 import * as DBus from './dbus.js';
 import * as Locale from './locale.js';
+import * as Sensors from './sensors.js';
 
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -238,20 +238,20 @@ export default class SensorsPreferences
     }
 
     async _getSensorsLabels() {
-        const sensors_cmd = Utilities.detectSensors(this.path);
+        const sensors_cmd = Sensors.detectSensors(this.path);
         if(sensors_cmd) {
             const [sensors_output, hasError] = await SubProc.runCommandAsync(sensors_cmd);
             if(sensors_output)
             {
-                const tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
+                const tempInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseSensorsTemperatureLine);
                 this._appendMultipleItems(tempInfo);
 
                 if (this._display_fan_rpm){
-                    const fanInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseFanRPMLine);
+                    const fanInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseFanRPMLine);
                     this._appendMultipleItems(fanInfo);
                 }
                 if (this._display_voltage){
-                    const voltageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseVoltageLine);
+                    const voltageInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseVoltageLine);
                     this._appendMultipleItems(voltageInfo);
                 }
             }
@@ -259,11 +259,11 @@ export default class SensorsPreferences
     }
 
     async _getHddTempLabels() {
-        const hddtemp_cmd = Utilities.detectHDDTemp();
+        const hddtemp_cmd = Sensors.detectHDDTemp();
         if(hddtemp_cmd){
             const [hddtemp_output, hasError] = await SubProc.runCommandAsync(hddtemp_cmd);
             if(hddtemp_output){
-                const hddTempInfo = Utilities.parseHddTempOutput(
+                const hddTempInfo = Sensors.parseHddTempOutput(
                     hddtemp_output,
                     !(/nc$/.exec(hddtemp_cmd[0])) ? ': ' : '|',
                     _("Drive %s")
