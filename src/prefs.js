@@ -9,6 +9,7 @@ import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.j
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
 import * as DBus from './dbus.js';
+import * as Locale from './locale.js';
 
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -17,7 +18,7 @@ export default class SensorsPreferences
     extends ExtensionPreferences
 {
     async fillPreferencesWindow(window) {
-        const oldLocale = Utilities.overrideLocale(this.uuid);
+        const oldLocale = Locale.overrideLocale(this.uuid);
 
         // increase the window height slightly to accommodate the new group
         // titles, and moving the final checkbox onto a separate line
@@ -127,7 +128,7 @@ export default class SensorsPreferences
             ''
         ));
 
-        Utilities.restoreLocale(oldLocale);
+        Locale.restoreLocale(oldLocale);
     }
 
     _appendMultipleItems(sensorInfo) {
