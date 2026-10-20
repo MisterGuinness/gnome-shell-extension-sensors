@@ -14,6 +14,7 @@ import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js'
 import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
 import * as DBus from './dbus.js';
+import * as Locale from './locale.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -186,7 +187,7 @@ export default class SensorsExtension
         let voltageInfo = Array();
         let wattageInfo = Array();
 
-        const oldLocale = Utilities.overrideLocale(this.uuid);
+        const oldLocale = Locale.overrideLocale(this.uuid);
 
         tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
         if (display_fan_rpm){
@@ -360,7 +361,7 @@ export default class SensorsExtension
 
         this._sensorsMenu.addMenuItem(section);
 
-        Utilities.restoreLocale(oldLocale);
+        Locale.restoreLocale(oldLocale);
     }
 
     _toFahrenheit(c) {
