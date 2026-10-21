@@ -1,5 +1,5 @@
 # extensiondir declared in configure.ac
-dist_extension_DATA = extension.js prefs.js utilities.js subproc.js dbus.js
+dist_extension_DATA = extension.js prefs.js locale.js sensors.js subproc.js dbus.js
 dist_extension_SCRIPTS = mrg_sensors.sh
 
 # I don't want the bash script world-executable, and the below sets up the local script
