@@ -37,8 +37,6 @@ const proxyDriveClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveXML);
 const proxyDriveAtaClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveAtaXML);
 const proxyNVMeControllerClass = Gio.DBusProxy.makeProxyWrapper(interfaceNVMeControllerXML);
 
-console.log( "Proxie Classes Created" );
-
 var proxies = new Array();
 
 export function clearDriveProxies() {
@@ -51,7 +49,6 @@ export function haveDriveProxies() {
 
 export async function makeDriveProxies() {
 
-    console.log( "makeDriveProxies called" );
     clearDriveProxies();
 
     // create a new manager client that can list out all the objects
