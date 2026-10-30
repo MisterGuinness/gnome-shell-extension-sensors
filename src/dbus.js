@@ -101,7 +101,9 @@ export async function makeDriveProxies() {
             if ( object.get_interface("org.freedesktop.UDisks2.NVMe.Controller") != null ) {
                 drivePropertiesProxy = await newDriveProxy( proxyNVMeControllerClass, drivePath );
             } else {
-                console.warn( driveProxy.Model + " has neither ATA nor NVMe interface!" );
+                // drive has neither ATA nor NVMe interface (eg a USB stick)
+                // proceed to next object
+                continue;
             }
         }
 
