@@ -1,5 +1,42 @@
 import Gio from 'gi://Gio';
 
+const systemConnection = Gio.DBus.system;
+const udisksName = "org.freedesktop.UDisks2";
+const udisksPath = "/org/freedesktop/UDisks2";
+
+// refer https://storaged.org/doc/udisks2-api/latest/gdbus-org.freedesktop.UDisks2.Drive.html
+// and   https://dbus.freedesktop.org/doc/dbus-specification.html#type-system
+// NOTE: SmartTemperature is
+// type "d" (double-precusion floating point) for Drive Ata, but
+// type "q" (unit16) for NVMe, but I suspect the doc is wrong and is a "d"
+const interfaceDriveXML = `
+<node>
+    <interface name="org.freedesktop.UDisks2.Drive">
+        <property name="Model" type="s" access="read"/>
+    </interface>
+</node>`;
+
+// refer https://storaged.org/doc/udisks2-api/latest/gdbus-org.freedesktop.UDisks2.Drive.Ata.html
+const interfaceDriveAtaXML = `
+<node>
+    <interface name="org.freedesktop.UDisks2.Drive.Ata">
+        <property name="SmartTemperature" type="d" access="read"/>
+    </interface>
+</node>`;
+
+// refer https://storaged.org/doc/udisks2-api/latest/gdbus-org.freedesktop.UDisks2.NVMe.Controller.html
+const interfaceNVMeControllerXML = `
+<node>
+    <interface name="org.freedesktop.UDisks2.NVMe.Controller">
+        <property name="SmartTemperature" type="q" access="read"/>
+    </interface>
+</node>`;
+
+// create proxy classes once only, not every time makeDriveProxies is called
+const proxyDriveClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveXML);
+const proxyDriveAtaClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveAtaXML);
+const proxyNVMeControllerClass = Gio.DBusProxy.makeProxyWrapper(interfaceNVMeControllerXML);
+
 var proxies = new Array();
 
 export function clearDriveProxies() {
@@ -11,26 +48,87 @@ export function haveDriveProxies() {
 }
 
 export async function makeDriveProxies() {
-    const systemConnection = Gio.DBus.system;
-    const udisksName = "org.freedesktop.UDisks2";
-    const udisksPath = "/org/freedesktop/UDisks2";
 
     clearDriveProxies();
 
     // create a new manager client that can list out all the objects
+    const managerClient = await newManagerClient( udisksPath );
+
+    if ( managerClient === null ) {
+        return;
+    }
+
+    // get an array of objects for the requested path (ie all UDisks objects)
+    // refer https://docs.gtk.org/gio/method.DBusObjectManager.get_objects.html
+    const objects = managerClient.get_objects();
+
+    if ( objects === null ) {
+        console.error( "Could not get objects on DBusObjectManagerClient" );
+        return;
+    }
+
+    // the 'for (x of iterable-array)' will handle await on promises
+    for (const object of objects) {
+
+        // check that this object has the interface we want
+        if ( object.get_interface("org.freedesktop.UDisks2.Drive") === null ) {
+            // nope, proceed to next object, it may have the required interface
+            continue;
+        }
+
+        // det the path for this object, for use in creating proxies below
+        const drivePath = object.get_object_path();
+
+        // create proxies for each interface for this object
+        // the first is to access the model, and
+        // refer https://gjs.guide/guides/gio/dbus.html#high-level-proxies
+
+        const driveProxy = await newDriveProxy( proxyDriveClass, drivePath );
+
+        if ( driveProxy === null ) {
+            // proceed to next object, it may have a drive proxy
+            continue;
+        }
+
+        // the second proxy is to access the temperature
+        // either for an ATA drive, or an NVMe Controller
+
+        let drivePropertiesProxy = null;
+
+        if ( object.get_interface("org.freedesktop.UDisks2.Drive.Ata") != null ) {
+            drivePropertiesProxy = await newDriveProxy( proxyDriveAtaClass, drivePath );
+        } else {
+            if ( object.get_interface("org.freedesktop.UDisks2.NVMe.Controller") != null ) {
+                drivePropertiesProxy = await newDriveProxy( proxyNVMeControllerClass, drivePath );
+            } else {
+                // drive has neither ATA nor NVMe interface (eg a USB stick)
+                // proceed to next object
+                continue;
+            }
+        }
+
+        if ( drivePropertiesProxy ) {
+            // package as properties of a new object and append to the array of proxies
+            proxies.push({ drive: driveProxy, properties: drivePropertiesProxy });
+        }
+    }
+}
+
+async function newManagerClient( path ) {
+
     // wrap the client in a promise so that the async result can be awaited
     // use the client's callback to finish the result and resolve the promise
     // refer https://docs.gtk.org/gio/type_func.DBusObjectManagerClient.new.html
 
-    let managerClient = null;
+    let client = null
 
     try {
-        managerClient = await new Promise((resolve, reject) => {
+        client = await new Promise((resolve, reject) => {
             Gio.DBusObjectManagerClient.new(
                 systemConnection,
                 Gio.G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
                 udisksName,
-                udisksPath,
+                path,
                 null, // always construct GDBusProxy proxies
                 null, // not cancellable
                 // async callback
@@ -48,85 +146,41 @@ export async function makeDriveProxies() {
         console.error(e);
     }
 
-    // get an array of objects for the requested path (ie all UDisks objects)
-    // refer https://docs.gtk.org/gio/method.DBusObjectManager.get_objects.html
-    let objects = null;
-
-    if (managerClient) {
-        objects = managerClient.get_objects();
+    if ( client === null ) {
+        console.error( "Could not create DBusObjectManagerClient" );
     }
 
-    const interfaceDriveXML = `
-    <node>
-        <interface name="org.freedesktop.UDisks2.Drive">
-            <property name="Model" type="s" access="read"/>
-        </interface>
-    </node>`;
+    return client;
+}
 
-    const interfaceDriveAtaXML = `
-    <node>
-        <interface name="org.freedesktop.UDisks2.Drive.Ata">
-            <property name="SmartTemperature" type="d" access="read"/>
-        </interface>
-    </node>`;
+async function newDriveProxy( proxyClass, path ) {
+    let proxy = null;
 
-    const proxyDriveClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveXML);
-    const proxyDriveAtaClass = Gio.DBusProxy.makeProxyWrapper(interfaceDriveAtaXML);
-
-    // the 'for (x of iterable-array)' will handle await on promises
-    for (const object of objects) {
-
-        // check that this object has both the interfaces we want
-        if ( object.get_interface("org.freedesktop.UDisks2.Drive") != null
-            && object.get_interface("org.freedesktop.UDisks2.Drive.Ata") != null ) {
-
-            const path = object.get_object_path();
-
-            // create proxies for each interface for this object (ie drive)
-            // the first is to access the model, and
-            // the second is to access the temperature
-            // refer https://gjs.guide/guides/gio/dbus.html#high-level-proxies
-            try {
-                const driveProxy = await new Promise((resolve, reject) => {
-                    proxyDriveClass(
-                        systemConnection,
-                        udisksName,
-                        path,
-                        (proxy, error) => {
-                            if (error === null)
-                                resolve(proxy);
-                            else
-                                reject(error);
-                        },
-                        null, // not cancellable
-                        Gio.DBusProxyFlags.NONE
-                    );
-                });
-
-                const driveAtaProxy = await new Promise((resolve, reject) => {
-                    proxyDriveAtaClass(
-                        systemConnection,
-                        udisksName,
-                        path,
-                        (proxy, error) => {
-                            if (error === null)
-                                resolve(proxy);
-                            else
-                                reject(error);
-                        },
-                        null, // not cancellable
-                        Gio.DBusProxyFlags.NONE
-                    );
-                });
-
-                // package as properties of a new object and append to the array of proxies
-                proxies.push({ drive: driveProxy, ata: driveAtaProxy });
-
-            } catch(e) {
-                console.error(e);
-            }
-        }
+    try {
+        proxy = await new Promise((resolve, reject) => {
+            new proxyClass(
+                systemConnection,
+                udisksName,
+                path,
+                (proxy, error) => {
+                    if (error === null)
+                        resolve(proxy);
+                    else
+                        reject(error);
+                },
+                null, // not cancellable
+                Gio.DBusProxyFlags.NONE
+            );
+        });
+    } catch(e) {
+        console.error(e);
     }
+
+    if ( proxy === null ) {
+        console.warn( "Could not create drive proxy for " + path );
+    }
+
+    return proxy;
 }
 
 // https://storaged.org/doc/udisks2-api/latest/gdbus-org.freedesktop.UDisks2.Drive.Ata.html#gdbus-property-org-freedesktop-UDisks2-Drive-Ata.SmartTemperature
@@ -146,10 +200,10 @@ export async function makeDriveProxies() {
 export function getDriveTemps(labelPrefix) {
     // 0K means no data available
     return proxies
-        .filter((proxy) => proxy.ata.SmartTemperature > 0)
+        .filter((proxy) => proxy.properties.SmartTemperature > 0)
         .map((proxy) => ({
                 label: labelPrefix.format(proxy.drive.Model),
-                temp: proxy.ata.SmartTemperature - 273.15
+                temp: proxy.properties.SmartTemperature - 273.15
             })
         )
 }

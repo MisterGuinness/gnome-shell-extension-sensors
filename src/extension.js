@@ -11,9 +11,10 @@ import * as Util from 'resource:///org/gnome/shell/misc/util.js'; // for spawn
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import * as Utilities from './utilities.js';
 import * as SubProc from './subproc.js';
 import * as DBus from './dbus.js';
+import * as Locale from './locale.js';
+import * as Sensors from './sensors.js';
 
 const SensorsItem = GObject.registerClass({
     GTypeName: 'SensorsItem'
@@ -96,7 +97,7 @@ export default class SensorsExtension
 
         this._settings = this.getSettings();
 
-        this.sensorsArgv = Utilities.detectSensors(this.path);
+        this.sensorsArgv = Sensors.detectSensors(this.path);
         this.hddtempArgv = null;
 
         this._settingsChanged = this._settings.connect('changed', this._querySensors.bind(this));
@@ -155,7 +156,7 @@ export default class SensorsExtension
             // if the command for hddtemp has not been previously identified
             if ( this.hddtempArgv == null )
             {
-                this.hddtempArgv = Utilities.detectHDDTemp();
+                this.hddtempArgv = Sensors.detectHDDTemp();
             }
         }
         else
@@ -186,24 +187,24 @@ export default class SensorsExtension
         let voltageInfo = Array();
         let wattageInfo = Array();
 
-        const oldLocale = Utilities.overrideLocale(this.uuid);
+        const oldLocale = Locale.overrideLocale(this.uuid);
 
-        tempInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseSensorsTemperatureLine);
+        tempInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseSensorsTemperatureLine);
         if (display_fan_rpm){
-            fanInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseFanRPMLine);
+            fanInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseFanRPMLine);
         }
         if (display_voltage){
-            voltageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseVoltageLine);
+            voltageInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseVoltageLine);
         }
 
         if (display_wattage){
-            wattageInfo = Utilities.parseSensorsOutput(sensors_output,Utilities.parseWattageLine);
+            wattageInfo = Sensors.parseSensorsOutput(sensors_output,Sensors.parseWattageLine);
         }
 
         if(this.hddtempArgv)
             // provide the drive label to utilities so all translations are
             // performed inside this module
-            tempInfo = tempInfo.concat( Utilities.parseHddTempOutput(
+            tempInfo = tempInfo.concat( Sensors.parseHddTempOutput(
                     hddtemp_output,
                     !(/nc$/.exec(this.hddtempArgv[0])) ? ': ' : '|',
                     _("Drive %s")
@@ -360,7 +361,7 @@ export default class SensorsExtension
 
         this._sensorsMenu.addMenuItem(section);
 
-        Utilities.restoreLocale(oldLocale);
+        Locale.restoreLocale(oldLocale);
     }
 
     _toFahrenheit(c) {

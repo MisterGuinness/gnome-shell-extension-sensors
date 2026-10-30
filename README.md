@@ -25,7 +25,14 @@ of the extension will not run on Gnome Shell after v44.
 
 |Extension Version|Fedora|Gnome Shell|Note|
 |---|---|---|---|
-|3.5 (current)|44|50|
+|3.6 (current)|45|51|
+| |44|50|
+| |43|49|
+| |42|48|
+| |41|47|
+| |40|46|
+| |39|45|
+|3.5|44|50|
 | |43|49|
 | |42|48|
 | |41|47|
@@ -83,19 +90,17 @@ Manual installation
 
 To install this extension you need to clone the source and build the extension.
 
-For gnome-shell 3.10 or newer please run the following commands:
+Please run the following commands:
 
     cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
 
+or to get the latest version from the develop branch
+
+    cd ~ && git clone -b develop --single-branch https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
+
+then
+
     cd ~/gnome-shell-extension-sensors
-
-For gnome-shell 3.8 or older please run the following commands:
-
-    cd ~ && git clone https://github.com/MisterGuinness/gnome-shell-extension-sensors.git
-
-    cd ~/gnome-shell-extension-sensors
-
-    git checkout gnome-3.8
 
 The build dependencies are:
 
